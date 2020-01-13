@@ -484,7 +484,7 @@ class LogIn(object):
         self.formLayout.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.comboBox)
 
         self.retranslateUi(Dialog)
-        self.buttonBox.accepted.connect(self.goto_list)
+        # self.buttonBox.accepted.connect(self.goto_list)
         self.buttonBox.rejected.connect(Dialog.reject)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
 
