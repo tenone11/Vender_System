@@ -3,6 +3,7 @@
 from Sources import user_json
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+
 class LogIn(object):
     def __init__(self):
         self.accounts = user_json.accounts()
@@ -497,10 +498,14 @@ class LogIn(object):
         for i in range(len(self.accounts)):
             self.comboBox.setItemText(i, _translate("Dialog", self.accounts[i]))
 
-    def goto_list(self):
-        for i in range(len(self.accounts)):
-            if self.comboBox.currentText() ==  self.accounts[i]:
-                if self.textEdit_2.toPlainText() == self.passwords[i]:
-                    print("登录成功")
-                else:
-                    print("账号或者密码错误，请联系副部长")
+    # def goto_list(self):
+    #     self.msg = QMessageBox()
+    #     for i in range(len(self.accounts)):
+    #         if self.comboBox.currentText() == self.accounts[i]:
+    #             if self.textEdit_2.toPlainText() == self.passwords[i]:
+    #                 self.msg.question(self.msg, '提示', '登录成功', self.msg.Ok)
+    #                 print("登录成功")
+    #             else:
+    #                 self.msg.warning(self.msg, '提示', '密码错误', self.msg.Ok)
+    #                 print("密码错误，请联系副部长")
+

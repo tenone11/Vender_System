@@ -1,35 +1,39 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
-from Admin import Login
+from Admin.Login import LogIn
 from Main import Main_Window
 import sys
+from Sources import user_json
+from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog, QMessageBox
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog
-
-
-class MyWindow(QMainWindow, ):
-    def __init__(self, parent=None):
-        super(MyWindow, self).__init__(parent)
-        self.setupUi(self)
-
+ui = LogIn()
+def goto_list():
+    accounts = user_json.accounts()
+    passwords = user_json.passwords()
+    msg = QMessageBox()
+    # print("1")
+    for i in range(len(accounts)):
+        if ui.comboBox.currentText() == accounts[i]:
+            if ui.textEdit_2.toPlainText() == passwords[i]:
+                msg.question(msg, '提示', '登录成功', msg.Ok)
+                print("登录成功")
+                mainwindow.show()
+                dialogWindow.close()
+                return 1
+                # mainwindow.show()
+                # dialogWindow.close()
+            # else:
+            #     msg.warning(msg, '提示', '密码错误', msg.Ok)
+            #     print("密码错误，请联系副部长")
+            #     return 0
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     dialogWindow = QDialog()
     mainwindow = QMainWindow()
-
-    ui = Login.LogIn()
     ui.setupUi(dialogWindow)
     main_win = Main_Window.Ui_MainWindow()
     main_win.setupUi(mainwindow)
-
-
-    def gotoandclose():  # switch page and close dialog
-        mainwindow.show()
-        dialogWindow.close()
-
-
-    ui.buttonBox.accepted.connect(gotoandclose)
-
     dialogWindow.show()
+    ui.buttonBox.clicked.connect(goto_list)
     sys.exit(app.exec_())
