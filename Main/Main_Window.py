@@ -1,6 +1,9 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
+from PyQt5.QtWidgets import QFileDialog
+import openpyxl
 
 
 class Ui_MainWindow(object):
@@ -39,7 +42,7 @@ class Ui_MainWindow(object):
         self.menuFile.addAction(self.actionSave)
         self.menuFile.addAction(self.actionExit)
         self.menubar.addAction(self.menuFile.menuAction())
-
+        self.actionOpen.triggered.connect(self.openfile)
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
@@ -53,3 +56,13 @@ class Ui_MainWindow(object):
         self.actionImport.setText(_translate("MainWindow", "Import"))
         self.actionSave.setText(_translate("MainWindow", "Save"))
         self.actionExit.setText(_translate("MainWindow", "Exit"))
+
+    def openfile(self):
+        print("aaa")
+        excelfile = QFileDialog.getOpenFileName(None,
+                                                'Choose Files',
+                                                '',
+                                                'Excel Files (*.xlsx)')
+
+        wb = openpyxl.load_workbook(filename=r'D:\Test\Book1.xlsx')
+        print(wb.get_sheet_names())
