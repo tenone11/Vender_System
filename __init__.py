@@ -11,7 +11,6 @@ def goto_list():
     accounts = user_json.accounts()
     passwords = user_json.passwords()
     msg = QMessageBox()
-    # print("1")
     for i in range(len(accounts)):
         if ui.comboBox.currentText() == accounts[i]:
             if ui.textEdit_2.toPlainText() == passwords[i]:
@@ -20,12 +19,10 @@ def goto_list():
                 mainwindow.show()
                 dialogWindow.close()
                 return 1
-                # mainwindow.show()
-                # dialogWindow.close()
-            # else:
-            #     msg.warning(msg, '提示', '密码错误', msg.Ok)
-            #     print("密码错误，请联系副部长")
-            #     return 0
+            else:
+                msg.warning(msg, '提示', '密码错误，请联系雷副部长', msg.Ok)
+                print("密码错误，请联系副部长")
+                return 0
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
@@ -35,5 +32,5 @@ if __name__ == '__main__':
     main_win = Main_Window.Ui_MainWindow()
     main_win.setupUi(mainwindow)
     dialogWindow.show()
-    ui.buttonBox.clicked.connect(goto_list)
+    ui.buttonBox.accepted.connect(goto_list)
     sys.exit(app.exec_())
