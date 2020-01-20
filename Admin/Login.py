@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from Sources import user_json
+from Admin.Sources import user_json
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
