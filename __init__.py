@@ -7,6 +7,8 @@ from Admin.Sources import user_json
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog, QMessageBox
 
 ui = LogIn()
+
+
 def goto_list():
     accounts = user_json.accounts()
     passwords = user_json.passwords()
@@ -23,6 +25,7 @@ def goto_list():
                 msg.warning(msg, '提示', '密码错误，请联系雷副部长', msg.Ok)
                 print("密码错误，请联系副部长")
                 return 0
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

@@ -3,6 +3,7 @@
 
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import QFileDialog, QTableWidgetItem
+from datetime import date
 import openpyxl
 
 
@@ -57,7 +58,7 @@ class Ui_MainWindow(object):
         self.actionSave.setText(_translate("MainWindow", "Save"))
         self.actionExit.setText(_translate("MainWindow", "Exit"))
 
-    def openfile(self):
+    def openfile(self):  # import vender excel, Please don't
         excel_file, _ = QFileDialog.getOpenFileName(None,
                                                     'Choose Files',
                                                     'E:\\Test\\',
@@ -72,10 +73,17 @@ class Ui_MainWindow(object):
             for cell in row:
                 head_item.append(cell.value)
         self.tableWidget.setHorizontalHeaderLabels(head_item)  # get excel head item
-        for i in range(2, ws.max_row):
+        for i in range(2, ws.max_row+1):
             for x in range(1, ws.max_column+1):
                 if ws.cell(i, x).value is None:
                     self.tableWidget.setItem(i-2, x-1, QTableWidgetItem(' '))
+                elif isinstance(ws.cell(i, x).value, date):
+                    ymd = date.isoformat(ws.cell(i, x).value)
+                    self.tableWidget.setItem(i-2, x-1, QTableWidgetItem(ymd))
                 else:
                     self.tableWidget.setItem(i-2, x-1, QTableWidgetItem(str(ws.cell(i, x).value)))
-        print("bbb")
+        for merged_cell in ws.merged_cells:
+            r1, r2, c1, c2 = merged_cell.min_row, merged_cell.max_row, merged_cell.min_col, merged_cell.max_col
+            print(r1, c1, r2, c2)
+            self.tableWidget.setSpan(r1-2, c1-1, r2-(r1-1), c2)
+        self.tableWidget.resizeColumnsToContents()  # cell width follow the content length
