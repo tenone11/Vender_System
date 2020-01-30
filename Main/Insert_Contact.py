@@ -2,14 +2,10 @@
 
 from PyQt5 import QtCore, QtWidgets
 import Main
-from Main import Main_Window
 
 
 class Ui_Dialog(object):
-
     def __init__(self, sub_item, col_val, comboBoxList):
-        #     super(Ui_Dialog, self).__init__(parent)
-        self.Main_Window = Main.Main_Window.Ui_MainWindow()  # instant class Main_Window
         self.head_item = sub_item
         self.col_val = col_val
         self.comboBoxList = comboBoxList
@@ -34,7 +30,6 @@ class Ui_Dialog(object):
         self.tableWidget.setCellWidget(0, 0, self.comboBox)
         self.tableWidget.resizeColumnsToContents()
         self.retranslateUi(Dialog)
-        self.buttonBox.accepted.connect(self.ok)
         self.buttonBox.accepted.connect(Dialog.accept)
         self.buttonBox.rejected.connect(Dialog.reject)
         QtCore.QMetaObject.connectSlotsByName(Dialog)
@@ -43,13 +38,3 @@ class Ui_Dialog(object):
         _translate = QtCore.QCoreApplication.translate
         Dialog.setWindowTitle(_translate("Dialog", "添加合同"))
 
-    def ok(self):
-        new_content = []
-        try:
-            for val in range(1, self.tableWidget.columnCount()):
-                print(self.tableWidget.item(0, val).text())
-                new_content.append(self.tableWidget.item(0, val).text())
-        except Exception as e:
-            print(e)    #继续，写未填信息的话报错
-
-        # self.Main_Window.tableWidget.insertRow()

@@ -5,7 +5,7 @@ from Main import Main_Window
 import sys
 from Admin.Sources import user_json
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDialog, QMessageBox
-import qdarkstyle
+# import qdarkstyle
 ui = LogIn()
 
 
@@ -36,5 +36,5 @@ if __name__ == '__main__':
     main_win.setupUi(mainwindow)
     dialogWindow.show()
     ui.buttonBox.accepted.connect(goto_list)
-    app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+    # app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     sys.exit(app.exec_())
