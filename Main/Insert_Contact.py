@@ -4,11 +4,13 @@ from PyQt5 import QtCore, QtWidgets
 import Main
 
 
+
 class Ui_Dialog(object):
     def __init__(self, sub_item, col_val, comboBoxList):
         self.head_item = sub_item
         self.col_val = col_val
         self.comboBoxList = comboBoxList
+
 
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")

@@ -36,5 +36,6 @@ if __name__ == '__main__':
     main_win.setupUi(mainwindow)
     dialogWindow.show()
     ui.buttonBox.accepted.connect(goto_list)
+    main_win.actionExit.triggered.connect(mainwindow.close)
     # app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     sys.exit(app.exec_())

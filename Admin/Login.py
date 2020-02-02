@@ -59,4 +59,3 @@ class LogIn(object):
         self.comboBox.setCurrentText(_translate("Dialog", self.accounts[0]))
         for i in range(len(self.accounts)):
             self.comboBox.setItemText(i, _translate("Dialog", self.accounts[i]))
-
