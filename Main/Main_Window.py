@@ -7,7 +7,7 @@ import openpyxl
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtGui import QBrush, QColor
 from PyQt5.QtWidgets import QFileDialog, QTableWidgetItem, QDialog, QMessageBox
-from Main import Insert_Contact, Analyze
+from Main import Insert_Contact, Analyze, Features
 
 
 class Ui_MainWindow(object):
@@ -81,10 +81,10 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuFile.menuAction())
         self.menubar.addAction(self.menuEdit.menuAction())
         self.actionOpen.triggered.connect(self.openfile)
-        self.action_insert_contact.triggered.connect(self.insert_contact)  # connect
+        self.action_insert_contact.triggered.connect(self.add_contact)  # connect
         self.action_del_contact.triggered.connect(self.del_contact)
         self.actionSave.triggered.connect(self.save_file)
-        self.pushButton.clicked.connect(self.insert_contact)
+        self.pushButton.clicked.connect(self.add_contact)
         self.pushButton_2.clicked.connect(self.del_contact)
         self.pushButton_3.clicked.connect(self.open_analyze)
         self.retranslateUi(MainWindow)
@@ -196,18 +196,45 @@ class Ui_MainWindow(object):
         pass
 
     def open_analyze(self):
-        url_string = "file:///C:/Users/Administrator/PycharmProjects/Vender_System/Main/render.html"
-        a = Analyze.BrowserWindow(url_string)
+        # url_string = "file:///C:/Users/Administrator/PycharmProjects/Vender_System/Main/render.html"
+        # a = Analyze.BrowserWindow(url_string)
+        # a.exec()
+        sum_list = []
+        manday_list = []
+        vendor_dict = self.get_vendor_info()
+        features = Features.Features()
+        for i in vendor_dict:
+            _sum = features.get_sum(vendor_dict[i]['付款金额'])
+            _manday = features.get_sum(vendor_dict[i]['总人天'])
+            sum_list.append(_sum)
+            manday_list.append(_manday)
+        a = Analyze.BrowserWindow(self.vendor_list, sum_list, manday_list)
         a.exec()
+        # print(self.vendor_dict)
+        # for vendor_name in self.vendor_list:
+        #     _list = self.get_onevendor_column_info()
+        #     _list = list(map(float, _list))
+        #     sum_list.append(sum(_list))
+        # print(sum_list)
+        # day_list = []
+        # for vendor_name in self.vendor_list:
+        #     _list = self.get_onevendor_column_info(vendor_name, '总人天')
+        #     _list = list(map(float, _list))
+        #     day_list.append(sum(_list))
+        #
+        # frame = QtWidgets.QWidget()
+        # self.analyze = new.Ui_Form(self.vendor_list, sum_list, day_list)
+        # self.analyze.setupUi(frame)
+        # frame.show()
 
-    def insert_contact(self):
+    def add_contact(self):
         frame = QDialog()
         self.insert_dialog = Insert_Contact.Ui_Dialog(self.head_item, self.max_col, self.vendor_list)
         self.insert_dialog.setupUi(frame)
-        self.insert_dialog.buttonBox.accepted.connect(self.insert_ok)
+        self.insert_dialog.buttonBox.accepted.connect(self.add_contact_ok)
         frame.exec()
 
-    def insert_ok(self):
+    def add_contact_ok(self):
         try:
             vendor_val = self.insert_dialog.comboBox.currentIndex()  # Insert_Contact combo box item
             insert_row = self.splitter[vendor_val] - 1
@@ -244,21 +271,28 @@ class Ui_MainWindow(object):
             elif fianl_warning == self.msg.No:
                 self.msg.close()
 
-    # get_vendor_row(self.vender_list[0])  == [0, 88]
-    def get_vendor_row(self, vendor_name):
-        first = []
+    def get_vendor_info(self):  # {公司名：{表头:[]}}
+        first_end = []
         vendor_dict = {}
         for i in range(len(self.splitter)):
-            first.append(self.splitter[i] - self.vendorcontact_counts[i])
-        for x in range(len(self.vendor_list)):
-            end = self.splitter[x] - 1
-            vendor_dict = {self.vendor_list[x]: [first[x], end]}
-        return vendor_dict[vendor_name]
+            first = self.splitter[i] - self.vendorcontact_counts[i] - 2
+            end = self.splitter[i] - 1
+            first_end.append([first, end])
+        print(first_end)  # '上海大宁文化传播有限公司'     first_end[0]= [0, 88]
 
-    def get_vendor_column_info(self):
-        vendor_info = []
-        for col in range(1, len(self.head_item)):
-            for row in self.get_vendor_row(vendor_name=):
-                item = self.tableWidget.item(row, col).text()
-                vendor_info.append(item)
-        return list(set(vendor_info))    # reduce the same item
+        temp_list = []
+        for x in range(len(self.vendor_list)):
+            head_list = {}
+            for col in range(1, self.tableWidget.columnCount()):
+                head_name = self.tableWidget.horizontalHeaderItem(col).text()
+                _list = []
+                for row in range(first_end[x][0], first_end[x][1]):
+                    item = self.tableWidget.item(row, col).text()
+                    _list.append(item)
+                head_list.setdefault(head_name, _list)
+            temp_list.append(head_list)
+
+        for x in range(len(self.vendor_list)):
+            vendor_dict.setdefault(self.vendor_list[x], temp_list[x])
+        return vendor_dict
+        # print(self.vendor_dict['漕河三维动画有限公司']['凭证字号'])

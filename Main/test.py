@@ -6,7 +6,6 @@
 # # render 会生成本地 HTML 文件，默认会在当前目录生成 render.html 文件
 # # 也可以传入路径参数，如 bar.render("mycharts.html")
 # bar.render()
-
-a = [1,1,2]
-b = list(set(a))
-print(b)
+a = ['1','2', 'a ']
+b= map(float, a)
+print (list(b))
