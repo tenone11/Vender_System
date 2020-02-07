@@ -3,6 +3,9 @@ from datetime import datetime
 
 
 class Features:
+    def __init__(self, pd_dict):
+        self.pd_dict = pd_dict
+
     def get_y_m(self, selected_item):
         format_date = datetime.strptime(selected_item, '%Y-%m-%d').strftime("%Y-%m")
         return format_date
@@ -11,25 +14,27 @@ class Features:
         format_date = datetime.strptime(selected_item, '%Y-%m-%d').strftime("%Y")
         return format_date
 
-    def create_bar(self, x_list, vendor_name, val_list):
+
+    def create_bar(self, x_list, y_list):
         bar = charts.Bar()
         bar.add_xaxis(x_list)
-        for i in vendor_name:
-            bar.add_yaxis(i, vendor_name[val_list])
-        # render 会生成本地 HTML 文件，默认会在当前目录生成 render.html 文件
-        # 也可以传入路径参数，如 bar.render("mycharts.html")
-        bar.render("./Source/bar.html")
+        for i in y_list:
+            bar.add_yaxis(i[0], i[1])
+        bar.render("Main/Source/bar.html")
 
-    def get_sum(self, _list):
-        result = 0
-        for i in _list:
-            try:
-                i = float(i)
-            except Exception as e:
-                continue
-            result += i
+    def get_base_sum(self, which_col):
+        vender_list = list(set(self.pd_dict['公司名称']))
+        result = []
+        for i in vender_list:
+            temp = self.pd_dict[self.pd_dict['公司名称'] == i]
+            result.append(temp[which_col].sum())
         return result
-a = ['1', '2', 'a ']
-b = Features()
-c = b.get_sum(a)
-print(c)
+
+    def get_project_sum(self, vendor_name, request, val):
+        result = []
+        temp = self.pd_dict[self.pd_dict['公司名称'] == vendor_name]
+        request_list = list(set(temp[request]))
+        for i in request_list:
+            result.append(temp[(temp[request] == i)][val].sum())
+        return vendor_name, request_list, result
+        #[公司名], [项目名s], [qians]

@@ -7,13 +7,11 @@ import openpyxl
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtGui import QBrush, QColor
 from PyQt5.QtWidgets import QFileDialog, QTableWidgetItem, QDialog, QMessageBox
-from Main import Insert_Contact, Analyze, Features
+from Main import Insert_Contact, Analyze, Add_Vendor
+import pandas as pd
 
 
 class Ui_MainWindow(object):
-
-    # def __init__(self, button_width=100, button_height=45, table_width=1650, head_item=None):
-    #     # super(Ui_MainWindow, self).__init__()
     def __init__(self):
         self.max_col = 0
         self.head_item = []
@@ -64,10 +62,10 @@ class Ui_MainWindow(object):
         self.actionSave.setObjectName("actionSave")
         self.actionExit = QtWidgets.QAction(MainWindow)
         self.actionExit.setObjectName("actionExit")
-        self.actionzengjia_waibaoshang = QtWidgets.QAction(MainWindow)
-        self.actionzengjia_waibaoshang.setObjectName("actionzengjia_waibaoshang")
-        self.action_insert_contact = QtWidgets.QAction(MainWindow)
-        self.action_insert_contact.setObjectName("action_insert_contact")
+        self.action_add_vendor = QtWidgets.QAction(MainWindow)
+        self.action_add_vendor.setObjectName("actionzengjia_waibaoshang")
+        self.action_add_contact = QtWidgets.QAction(MainWindow)
+        self.action_add_contact.setObjectName("action_insert_contact")
         self.action_del_contact = QtWidgets.QAction(MainWindow)
         self.action_del_contact.setObjectName("action_del_contact")
         self.menuFile.addAction(self.actionOpen)
@@ -75,14 +73,15 @@ class Ui_MainWindow(object):
         self.menuFile.addAction(self.actionSave)
         self.menuFile.addAction(self.actionExit)
         self.menuEdit.addSeparator()
-        self.menuEdit.addAction(self.actionzengjia_waibaoshang)
-        self.menuEdit.addAction(self.action_insert_contact)
+        self.menuEdit.addAction(self.action_add_vendor)
+        self.menuEdit.addAction(self.action_add_contact)
         self.menuEdit.addAction(self.action_del_contact)
         self.menubar.addAction(self.menuFile.menuAction())
         self.menubar.addAction(self.menuEdit.menuAction())
         self.actionOpen.triggered.connect(self.openfile)
-        self.action_insert_contact.triggered.connect(self.add_contact)  # connect
+        self.action_add_contact.triggered.connect(self.add_contact)  # connect
         self.action_del_contact.triggered.connect(self.del_contact)
+        self.action_add_vendor.triggered.connect(self.add_vendor)
         self.actionSave.triggered.connect(self.save_file)
         self.pushButton.clicked.connect(self.add_contact)
         self.pushButton_2.clicked.connect(self.del_contact)
@@ -102,8 +101,8 @@ class Ui_MainWindow(object):
         self.actionImport.setText(_translate("MainWindow", "Import"))
         self.actionSave.setText(_translate("MainWindow", "Save"))
         self.actionExit.setText(_translate("MainWindow", "Exit"))
-        self.actionzengjia_waibaoshang.setText(_translate("MainWindow", "zengjia waibaoshang"))
-        self.action_insert_contact.setText(_translate("MainWindow", "增加合同"))
+        self.action_add_vendor.setText(_translate("MainWindow", "增加供应商"))
+        self.action_add_contact.setText(_translate("MainWindow", "增加合同"))
         self.action_del_contact.setText(_translate("MainWindow", "删除合同"))
 
     def openfile(self):  # import vendor excel, Please don't
@@ -153,7 +152,7 @@ class Ui_MainWindow(object):
         for merged_cell in ws.merged_cells:
             r1, r2, c1, c2 = merged_cell.min_row, merged_cell.max_row, merged_cell.min_col, merged_cell.max_col
             # print(r1, r2, c1, c2)
-            self.vendorcontact_counts.append(r2 - r1)
+            self.vendorcontact_counts.append(r2 - r1 + 1)
             self.tableWidget.setSpan(r1 - 2, c1 - 1, r2 - (r1 - 1), c2)
             self.vendor_list.append(self.tableWidget.item(r1 - 2, c1 - 1).text())
             self.splitter.append(r2)  # every vendor last row
@@ -199,33 +198,9 @@ class Ui_MainWindow(object):
         # url_string = "file:///C:/Users/Administrator/PycharmProjects/Vender_System/Main/render.html"
         # a = Analyze.BrowserWindow(url_string)
         # a.exec()
-        sum_list = []
-        manday_list = []
         vendor_dict = self.get_vendor_info()
-        features = Features.Features()
-        for i in vendor_dict:
-            _sum = features.get_sum(vendor_dict[i]['付款金额'])
-            _manday = features.get_sum(vendor_dict[i]['总人天'])
-            sum_list.append(_sum)
-            manday_list.append(_manday)
-        a = Analyze.BrowserWindow(self.vendor_list, sum_list, manday_list)
+        a = Analyze.BrowserWindow(vendor_dict, self.vendor_list)
         a.exec()
-        # print(self.vendor_dict)
-        # for vendor_name in self.vendor_list:
-        #     _list = self.get_onevendor_column_info()
-        #     _list = list(map(float, _list))
-        #     sum_list.append(sum(_list))
-        # print(sum_list)
-        # day_list = []
-        # for vendor_name in self.vendor_list:
-        #     _list = self.get_onevendor_column_info(vendor_name, '总人天')
-        #     _list = list(map(float, _list))
-        #     day_list.append(sum(_list))
-        #
-        # frame = QtWidgets.QWidget()
-        # self.analyze = new.Ui_Form(self.vendor_list, sum_list, day_list)
-        # self.analyze.setupUi(frame)
-        # frame.show()
 
     def add_contact(self):
         frame = QDialog()
@@ -238,13 +213,13 @@ class Ui_MainWindow(object):
         try:
             vendor_val = self.insert_dialog.comboBox.currentIndex()  # Insert_Contact combo box item
             insert_row = self.splitter[vendor_val] - 1
-            firstpostion = insert_row - self.vendorcontact_counts[vendor_val] - 1
+            firstpostion = insert_row - self.vendorcontact_counts[vendor_val]
             self.tableWidget.insertRow(insert_row)
             self.vendorcontact_counts[vendor_val] += 1
             for i in range(vendor_val, len(self.splitter)):  # every splitter need add 1
                 self.splitter[i] += 1
             # print(firstpostion, 0, self.vendorcontact_counts[vendor_val] + 1, 1)
-            self.tableWidget.setSpan(firstpostion, 0, self.vendorcontact_counts[vendor_val] + 1, 1)
+            self.tableWidget.setSpan(firstpostion, 0, self.vendorcontact_counts[vendor_val], 1)
             for val in range(1, self.insert_dialog.tableWidget.columnCount()):
                 new_content = self.insert_dialog.tableWidget.item(0, val).text()  # what you type in dialog
                 self.tableWidget.setItem(insert_row, val, QTableWidgetItem(new_content))
@@ -254,7 +229,30 @@ class Ui_MainWindow(object):
             print(e)
 
     def add_vendor(self):
-        pass
+        frame = QDialog()
+        self.add_vendor_dialog = Add_Vendor.Ui_Dialog()
+        self.add_vendor_dialog.setupUi(frame)
+        self.add_vendor_dialog.buttonBox.accepted.connect(self.add_vendor_ok)
+        frame.exec()
+
+    def add_vendor_ok(self):
+        last_row = self.splitter[-1]
+        if self.add_vendor_dialog.lineEdit.text() == '':
+            self.msg.warning(self.msg, '提示', '不允许空', self.msg.Ok)
+        else:
+            self.tableWidget.insertRow(last_row)
+            for i in range(self.max_col):
+                item = QTableWidgetItem()
+                item.setBackground(QBrush(QColor(128, 128, 128)))
+                self.tableWidget.setItem(last_row, i, item)
+            self.tableWidget.insertRow(last_row)
+
+            _add = self.tableWidget.rowCount()-2
+            new_content = self.add_vendor_dialog.lineEdit.text()  # what you type in dialog
+            self.tableWidget.setItem(_add, 0, QTableWidgetItem(new_content))
+            self.vendor_list.append(self.add_vendor_dialog.lineEdit.text())
+            self.splitter.append(self.tableWidget.rowCount())
+            self.vendorcontact_counts.append(1)
 
     def del_contact(self):
         only_val = []
@@ -271,28 +269,29 @@ class Ui_MainWindow(object):
             elif fianl_warning == self.msg.No:
                 self.msg.close()
 
-    def get_vendor_info(self):  # {公司名：{表头:[]}}
+    def get_vendor_info(self):  # 返回pd数据
         first_end = []
-        vendor_dict = {}
         for i in range(len(self.splitter)):
-            first = self.splitter[i] - self.vendorcontact_counts[i] - 2
+            first = self.splitter[i] - self.vendorcontact_counts[i] - 1
             end = self.splitter[i] - 1
             first_end.append([first, end])
         print(first_end)  # '上海大宁文化传播有限公司'     first_end[0]= [0, 88]
 
-        temp_list = []
-        for x in range(len(self.vendor_list)):
-            head_list = {}
-            for col in range(1, self.tableWidget.columnCount()):
-                head_name = self.tableWidget.horizontalHeaderItem(col).text()
-                _list = []
+        head_list = {}
+        for col in range(0, self.tableWidget.columnCount()):
+            head_name = self.tableWidget.horizontalHeaderItem(col).text()
+            _list = []
+            for x in range(len(self.vendor_list)):
                 for row in range(first_end[x][0], first_end[x][1]):
                     item = self.tableWidget.item(row, col).text()
+                    if col == 0:
+                        item = self.vendor_list[x]
                     _list.append(item)
                 head_list.setdefault(head_name, _list)
-            temp_list.append(head_list)
-
-        for x in range(len(self.vendor_list)):
-            vendor_dict.setdefault(self.vendor_list[x], temp_list[x])
-        return vendor_dict
-        # print(self.vendor_dict['漕河三维动画有限公司']['凭证字号'])
+        pd_data = pd.DataFrame(head_list)
+        for i in ['日期', '业务日期', '付款日期']:
+            pd_data[i] = pd.to_datetime(pd_data[i], format='%Y-%m-%d', errors='coerce')
+        for i in ['不含税金额', '税率', '付款金额', '单价', '单笔支付', '总人天', '平均人天', '个数']:
+            pd_data[i] = pd.to_numeric(pd_data[i], errors='coerce')
+        # pd_data["单价"] = pd_data["单价"].astype("int", errors='coerce')
+        return pd_data
