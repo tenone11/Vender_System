@@ -1,8 +1,9 @@
 # Vender_System
 安装
 ====
-1. 下载python3.8.1
-[Python3.8.1](https://www.python.org/ftp/python/3.8.1/python-3.8.1-amd64.exe)
+1. 下载python3.8.1并安装
+
+>[Python3.8.1](https://www.python.org/ftp/python/3.8.1/python-3.8.1-amd64.exe)
 >!注意勾选加入环境变量!
 >Add Python to environment variables
 
