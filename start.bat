@@ -1,5 +1,5 @@
 @echo off
 
-start python %~dp0/__init.py
+start python __init__.py
 
 pause
