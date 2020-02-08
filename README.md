@@ -1,4 +1,4 @@
-# Vender_System
+# Vendor_System
 安装
 ====
 1. 下载python3.8.1并安装
