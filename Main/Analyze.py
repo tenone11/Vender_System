@@ -15,58 +15,21 @@
 
 饼状图：
 """
-
-# from PyQt5 import QtWidgets
-# from PyQt5.QtWidgets import QDialog
-#
-#
-# class BrowserWindow(QDialog):
-#     def __init__(self, comboBoxList, url):
-#         super(BrowserWindow, self).__init__()
-#         self.initUI()
-#         self.url = url
-#         self.comboBoxList = comboBoxList
-#
-#     def initUI(self):
-#         self.setWindowTitle('数据中心')  # 窗口标题
-#         self.setGeometry(5, 30, 1355, 730)  # 窗口的大小和位置设置
-#
-#         self.buttonBox = QtWidgets.QPushButton(self)
-#         self.buttonBox.resize(32, 32)
-#         self.buttonBox.setText('')
-#         self.buttonBox.move(1000, 650)
-#         self.comboBox = QtWidgets.QComboBox(self)
-#         self.comboBox.addItems(self.comboBoxList)
-#         self.browser = QWebEngineView(self)
-#         self.browser.resize(900, 600)
-#         self.buttonBox.clicked.connect(self.show_chart)
-#         # self.browser.setWindowTitle('分析%s' % 'aaa')
-#         # 加载html代码(这里注意html代码是用三个单引号包围起来的)
-#         # url_string = "file:///C:/Users/Administrator/PycharmProjects/Vender_System/Main/render.html"
-#         self.url_string = self.url
-#
-#         # self.setCentralWidget(self.browser)
-#     def show_chart(self):
-#         self.browser.load(QUrl(self.url_string))
-
-from PyQt5.QtWidgets import QDialog
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import QUrl
 from PyQt5.QtWebEngineWidgets import QWebEngineView
-import pandas as pd
-from Main.Features import Features
-import os
+from Main import Features
 
-class BrowserWindow(QDialog):
+
+class BrowserWindow(QtWidgets.QDialog):
     def __init__(self, vendor_dict, vendor_list):
         super(BrowserWindow, self).__init__()
         self.pd_dict = vendor_dict
         self.vendor_list = vendor_list
         self.onevendor_sum = []
         self.onevendor_daysum = []
-        self.features = Features(self.pd_dict)
-        self.onevendor_daysum = self.features.get_base_sum('总人天')
-        self.onevendor_sum = self.features.get_base_sum('付款金额')
+        self.features = Features.Features(self.pd_dict)
+        self.onevendor_daysum = self.features.get_base_sum(self.vendor_list, '总人天')
+        self.onevendor_sum = self.features.get_base_sum(self.vendor_list, '付款金额')
         self.initUI()
         self.msg = QtWidgets.QMessageBox()
 
@@ -85,19 +48,18 @@ class BrowserWindow(QDialog):
         self.label_5 = QtWidgets.QLabel(self.tab)
         self.label_5.setGeometry(QtCore.QRect(0, 0, 100, 32))
         self.label_4 = QtWidgets.QLabel(self.tab)
-        self.label_5.setGeometry(QtCore.QRect(0, 40, 200, 32))
+        self.label_5.setGeometry(QtCore.QRect(0, 20, 200, 32))
         self.groupBox = {}
         self.label_groupBox = {}
-        self.scrollArea = QtWidgets.QScrollArea()
-        self.scrollArea.setGeometry(QtCore.QRect(0, 0, 631, 441))
-        self.scrollArea.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
-        self.scrollArea.setWidgetResizable(True)
-        self.scrollArea.setWidget(self.tab)
+        self.scrollArea = QtWidgets.QScrollArea(self.tab)
+        self.scrollArea.setGeometry(QtCore.QRect(0, 50, 631, 800))
 
+        self.scrollAreaWidgetContents = QtWidgets.QWidget()
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 600, 700))
 
         for i in range(len(self.vendor_list)):
-            self.groupBox[i] = QtWidgets.QGroupBox(self.tab)
-            self.groupBox[i].setGeometry(QtCore.QRect(0, 90 * (i + 1), 500, 80))
+            self.groupBox[i] = QtWidgets.QGroupBox(self.scrollAreaWidgetContents)
+            self.groupBox[i].setGeometry(QtCore.QRect(0, 90 * i + 5, 500, 80))
             self.groupBox[i].setTitle(self.vendor_list[i])
             font = QtGui.QFont()
             font.setBold(True)
@@ -115,7 +77,9 @@ class BrowserWindow(QDialog):
             self.label_groupBox[i + 1].setFont(font)
         self.label_4.setText("总支出：%.2f元" % sum(self.onevendor_sum))
         self.label_5.setText("总人天：%.1f" % sum(self.onevendor_daysum))
-
+        self.scrollAreaWidgetContents.resize(600, 90 * len(self.vendor_list))
+        self.scrollArea.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        self.scrollArea.setWidget(self.scrollAreaWidgetContents)
         self.tabWidget.addTab(self.tab, "")
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), "常规数据")
         # Tab2
@@ -163,6 +127,7 @@ class BrowserWindow(QDialog):
 
         self.pushButton_insert.clicked.connect(self.get_barlist)
         self.pushButton.clicked.connect(self.show_bar)
+
     # comboBox_01 公司名称   comboBox_01_02 钱    comboBox_02 项目
     def get_barlist(self):
         self.y_list = []
@@ -177,22 +142,6 @@ class BrowserWindow(QDialog):
         self.x_list = self.get_res[1]
         print(self.x_list)
         print(self.y_list)
-        self.features.create_bar(self.x_list, self.y_list)
-        root_path = os.path.abspath(os.path.dirname(__file__))
-        url_string = "file:///C:/Users/Administrator/PycharmProjects/Vender_System/Main/Source/bar.html"
-        self.browser.load(QUrl(url_string))
-    #
-    #     print(x_list)
-
-    #     url_string = "file:///C:/Users/Administrator/PycharmProjects/Vender_System/Main/render.html"
-    #     self.browser.load(QUrl(url_string))
-        # sum_list = []
-        # manday_list = []
-        # vendor_dict = self.get_vendor_info()
-        # features = Features.Features()
-        # for i in vendor_dict:
-        #     _sum = features.get_sum(vendor_dict[i]['付款金额'])
-        #     _manday = features.get_sum(vendor_dict[i]['总人天'])
-        #     sum_list.append(_sum)
-        #     manday_list.append(_manday)
-        # a = Analyze.BrowserWindow(self.vendor_list, sum_list, manday_list)
+        Features.create_bar(self.x_list, self.y_list)
+        url_string = Features.legal_url('bar')
+        self.browser.load(QtCore.QUrl(url_string))

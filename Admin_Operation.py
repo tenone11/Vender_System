@@ -24,8 +24,9 @@ def go():
         tkinter.messagebox.showinfo('提示', '用户录入成功\n用户名:%s\n密码:%s' % (account_txt.get(), password_txt.get()))
         win.destroy()
 
+
 def delete_item():
-    _account=user_json.accounts()
+    _account = user_json.accounts()
     for i in range(len(_account)):
         if _account[i] == cmb_list.get():
             user_json.del_account(i)

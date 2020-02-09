@@ -24,7 +24,8 @@ class Ui_Dialog(object):
         self.tableWidget.setColumnCount(self.col_val)
         self.tableWidget.setRowCount(1)
         self.tableWidget.setHorizontalHeaderLabels(self.head_item)
-
+        for i in range(1, self.col_val):    # Bug for QT NoneType
+            self.tableWidget.setItem(0, i, QtWidgets.QTableWidgetItem(''))
         self.comboBox = QtWidgets.QComboBox()
         self.comboBox.addItems(self.comboBoxList)
         self.tableWidget.setCellWidget(0, 0, self.comboBox)

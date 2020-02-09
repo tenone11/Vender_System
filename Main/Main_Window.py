@@ -7,7 +7,7 @@ import openpyxl
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtGui import QBrush, QColor
 from PyQt5.QtWidgets import QFileDialog, QTableWidgetItem, QDialog, QMessageBox
-from Main import Insert_Contact, Analyze, Add_Vendor
+from Main import Insert_Contact, Analyze, Add_Vendor, Function
 import pandas as pd
 
 
@@ -60,14 +60,16 @@ class Ui_MainWindow(object):
         self.actionImport.setObjectName("actionImport")
         self.actionSave = QtWidgets.QAction(MainWindow)
         self.actionSave.setObjectName("actionSave")
+        self.actionSave.setShortcut("Ctrl+S")
         self.actionExit = QtWidgets.QAction(MainWindow)
         self.actionExit.setObjectName("actionExit")
         self.action_add_vendor = QtWidgets.QAction(MainWindow)
-        self.action_add_vendor.setObjectName("actionzengjia_waibaoshang")
+        self.action_add_vendor.setObjectName("action_add_vendor")
         self.action_add_contact = QtWidgets.QAction(MainWindow)
         self.action_add_contact.setObjectName("action_insert_contact")
         self.action_del_contact = QtWidgets.QAction(MainWindow)
         self.action_del_contact.setObjectName("action_del_contact")
+        self.action_function = QtWidgets.QAction(MainWindow)
         self.menuFile.addAction(self.actionOpen)
         self.menuFile.addAction(self.actionImport)
         self.menuFile.addAction(self.actionSave)
@@ -76,12 +78,14 @@ class Ui_MainWindow(object):
         self.menuEdit.addAction(self.action_add_vendor)
         self.menuEdit.addAction(self.action_add_contact)
         self.menuEdit.addAction(self.action_del_contact)
+        self.menuEdit.addAction(self.action_function)
         self.menubar.addAction(self.menuFile.menuAction())
         self.menubar.addAction(self.menuEdit.menuAction())
         self.actionOpen.triggered.connect(self.openfile)
         self.action_add_contact.triggered.connect(self.add_contact)  # connect
         self.action_del_contact.triggered.connect(self.del_contact)
         self.action_add_vendor.triggered.connect(self.add_vendor)
+        self.action_function.triggered.connect(self.edit_function)
         self.actionSave.triggered.connect(self.save_file)
         self.pushButton.clicked.connect(self.add_contact)
         self.pushButton_2.clicked.connect(self.del_contact)
@@ -104,90 +108,94 @@ class Ui_MainWindow(object):
         self.action_add_vendor.setText(_translate("MainWindow", "增加供应商"))
         self.action_add_contact.setText(_translate("MainWindow", "增加合同"))
         self.action_del_contact.setText(_translate("MainWindow", "删除合同"))
+        self.action_function.setText(_translate("MainWindow", "函数"))
 
     def openfile(self):  # import vendor excel, Please don't
         excel_file, _ = QFileDialog.getOpenFileName(None,
                                                     'Choose Files',
                                                     'E:\\Test\\',
                                                     'Excel Files (*.xlsx)')
-        wb = openpyxl.load_workbook(filename=excel_file)
-        ws = wb.active
-        self.max_col = ws.max_column
-        self.tableWidget.setRowCount(ws.max_row)
-        self.tableWidget.setColumnCount(self.max_col)
-        for row in ws.iter_rows(max_row=1):
-            for cell in row:
-                self.head_item.append(cell.value)
-        self.tableWidget.setHorizontalHeaderLabels(self.head_item)  # get excel head item
-        for i in range(2, ws.max_row + 1):
-            for x in range(1, self.max_col + 1):
-                if ws.cell(i, x).value is None:
-                    self.tableWidget.setItem(i - 2, x - 1, QTableWidgetItem(' '))
-                elif isinstance(ws.cell(i, x).value, date):
-                    ymd = date.isoformat(ws.cell(i, x).value)
-                    self.tableWidget.setItem(i - 2, x - 1, QTableWidgetItem(ymd))
-                else:
-                    self.tableWidget.setItem(i - 2, x - 1, QTableWidgetItem(str(ws.cell(i, x).value)))
+        if excel_file != '':  # Bug: openfile dialog cancel and quit all window
+            wb = openpyxl.load_workbook(filename=excel_file)
+            ws = wb.active
+            self.max_col = ws.max_column
+            self.tableWidget.setRowCount(ws.max_row)
+            self.tableWidget.setColumnCount(self.max_col)
+            for row in ws.iter_rows(max_row=1):
+                for cell in row:
+                    self.head_item.append(cell.value)
+            self.tableWidget.setHorizontalHeaderLabels(self.head_item)  # get excel head item
+            for i in range(2, ws.max_row + 1):
+                for x in range(1, self.max_col + 1):
+                    if ws.cell(i, x).value is None:
+                        self.tableWidget.setItem(i - 2, x - 1, QTableWidgetItem(' '))
+                    elif isinstance(ws.cell(i, x).value, date):
+                        ymd = date.isoformat(ws.cell(i, x).value)
+                        self.tableWidget.setItem(i - 2, x - 1, QTableWidgetItem(ymd))
+                    else:
+                        self.tableWidget.setItem(i - 2, x - 1, QTableWidgetItem(str(ws.cell(i, x).value)))
 
-        # below is for calculate per day price
-        for col in range(self.tableWidget.columnCount()):
-            if self.tableWidget.horizontalHeaderItem(col).text() == '总人天':
-                self.per_val.append(col)
-            if self.tableWidget.horizontalHeaderItem(col).text() == '个数':
-                self.per_val.append(col)
-            if self.tableWidget.horizontalHeaderItem(col).text() == '平均人天':
-                self.per_val.append(col)
-        try:  # could not convert space to float
-            for row in range(self.tableWidget.rowCount()):
-                a = self.tableWidget.item(row, self.per_val[0]).text()
-                b = self.tableWidget.item(row, self.per_val[1]).text()
-                if a != ' ' and b != ' ':
-                    result = float(a) / float(b)
-                    result = round(result, 1)  # 2.53333 to 2.5
-                    result = str(result)
-                    self.tableWidget.setItem(row, self.per_val[2], QTableWidgetItem(result))
-        except Exception as e:
-            print(e)
+            # below is for calculate per day price
+            # for col in range(self.tableWidget.columnCount()):
+            #     if self.tableWidget.horizontalHeaderItem(col).text() == '总人天':
+            #         self.per_val.append(col)
+            #     if self.tableWidget.horizontalHeaderItem(col).text() == '个数':
+            #         self.per_val.append(col)
+            #     if self.tableWidget.horizontalHeaderItem(col).text() == '平均人天':
+            #         self.per_val.append(col)
+            # try:  # could not convert space to float
+            #     for row in range(self.tableWidget.rowCount()):
+            #         print('a')
+            #         a = self.tableWidget.item(row, self.per_val[0]).text()
+            #         b = self.tableWidget.item(row, self.per_val[1]).text()
+            #         if a != ' ' and b != ' ':
+            #             result = float(a) / float(b)
+            #             result = round(result, 1)  # 2.53333 to 2.5
+            #             result = str(result)
+            #             self.tableWidget.setItem(row, self.per_val[2], QTableWidgetItem(result))
+            # except Exception as e:
+            #     print(e)
 
-        for merged_cell in ws.merged_cells:
-            r1, r2, c1, c2 = merged_cell.min_row, merged_cell.max_row, merged_cell.min_col, merged_cell.max_col
-            # print(r1, r2, c1, c2)
-            self.vendorcontact_counts.append(r2 - r1 + 1)
-            self.tableWidget.setSpan(r1 - 2, c1 - 1, r2 - (r1 - 1), c2)
-            self.vendor_list.append(self.tableWidget.item(r1 - 2, c1 - 1).text())
-            self.splitter.append(r2)  # every vendor last row
-        for row in self.splitter:  # fill background for null space
-            for i in range(0, self.max_col):
-                item = QTableWidgetItem()
-                item.setBackground(QBrush(QColor(128, 128, 128)))
-                self.tableWidget.setItem(row - 1, i, item)
-        self.tableWidget.resizeColumnsToContents()  # cell width follow the content length
+            for merged_cell in ws.merged_cells:
+                r1, r2, c1, c2 = merged_cell.min_row, merged_cell.max_row, merged_cell.min_col, merged_cell.max_col
+                # print(r1, r2, c1, c2)
+                self.vendorcontact_counts.append(r2 - r1 + 1)
+                self.tableWidget.setSpan(r1 - 2, c1 - 1, r2 - (r1 - 1), c2)
+                self.vendor_list.append(self.tableWidget.item(r1 - 2, c1 - 1).text())
+                self.splitter.append(r2)  # every vendor last row
+            for row in self.splitter:  # fill background for null space
+                for i in range(0, self.max_col):
+                    item = QTableWidgetItem()
+                    item.setBackground(QBrush(QColor(128, 128, 128)))
+                    self.tableWidget.setItem(row - 1, i, item)
+            self.tableWidget.resizeColumnsToContents()  # cell width follow the content length
 
     def import_file(self):
         pass
 
     def save_file(self):
-        path = QFileDialog.getSaveFileName(None,
-                                           'SaveFile',
-                                           'E:\\Test\\',
-                                           'Excel Files (*.xlsx)')
+        path, _ = QFileDialog.getSaveFileName(None,
+                                              'SaveFile',
+                                              'E:\\Test\\',
+                                              'Excel Files (*.xlsx)')
         try:
-            wb = openpyxl.Workbook()
-            ws = wb.create_sheet(index=0, title="VendorSystem")
-            for head_val in range(self.tableWidget.columnCount()):
-                head = self.tableWidget.horizontalHeaderItem(head_val).text()
-                ws.cell(1, head_val + 1, head)
-            for row in range(self.tableWidget.rowCount()):
-                for column in range(self.tableWidget.columnCount()):
-                    item = self.tableWidget.item(row, column)
-                    if item is not None:
-                        ws.cell(row + 2, column + 1, item.text())
-                    else:
-                        ws.cell(row + 2, column, ' ')
-            for i in range(len(self.splitter)):  # merge cell column 1
-                first = self.splitter[i] - self.vendorcontact_counts[i]
-                ws.merge_cells('A%d:A%d' % (first, self.splitter[i]))
-            wb.save(path[0])
+            if path != '':
+                wb = openpyxl.Workbook()
+                ws = wb.create_sheet(index=0, title="VendorSystem")
+                for head_val in range(self.tableWidget.columnCount()):
+                    head = self.tableWidget.horizontalHeaderItem(head_val).text()
+                    ws.cell(1, head_val + 1, head)
+                for row in range(self.tableWidget.rowCount()):
+                    for column in range(self.tableWidget.columnCount()):
+                        item = self.tableWidget.item(row, column)
+                        if item is not None:
+                            ws.cell(row + 2, column + 1, item.text())
+                        else:
+                            ws.cell(row + 2, column, ' ')
+                for i in range(len(self.splitter)):  # merge cell column 1
+                    first = self.splitter[i] - self.vendorcontact_counts[i]
+                    ws.merge_cells('A%d:A%d' % (first, self.splitter[i]))
+                wb.save(path)
         except Exception as e:
             print(e)
 
@@ -195,38 +203,38 @@ class Ui_MainWindow(object):
         pass
 
     def open_analyze(self):
-        # url_string = "file:///C:/Users/Administrator/PycharmProjects/Vender_System/Main/render.html"
-        # a = Analyze.BrowserWindow(url_string)
-        # a.exec()
+        # self.vendor_list = self.reload_vendor_list()
         vendor_dict = self.get_vendor_info()
         a = Analyze.BrowserWindow(vendor_dict, self.vendor_list)
         a.exec()
 
     def add_contact(self):
         frame = QDialog()
+        self.vendor_list = self.reload_vendor_list()
         self.insert_dialog = Insert_Contact.Ui_Dialog(self.head_item, self.max_col, self.vendor_list)
         self.insert_dialog.setupUi(frame)
         self.insert_dialog.buttonBox.accepted.connect(self.add_contact_ok)
         frame.exec()
 
     def add_contact_ok(self):
-        try:
-            vendor_val = self.insert_dialog.comboBox.currentIndex()  # Insert_Contact combo box item
-            insert_row = self.splitter[vendor_val] - 1
-            firstpostion = insert_row - self.vendorcontact_counts[vendor_val]
-            self.tableWidget.insertRow(insert_row)
-            self.vendorcontact_counts[vendor_val] += 1
-            for i in range(vendor_val, len(self.splitter)):  # every splitter need add 1
-                self.splitter[i] += 1
-            # print(firstpostion, 0, self.vendorcontact_counts[vendor_val] + 1, 1)
-            self.tableWidget.setSpan(firstpostion, 0, self.vendorcontact_counts[vendor_val], 1)
-            for val in range(1, self.insert_dialog.tableWidget.columnCount()):
-                new_content = self.insert_dialog.tableWidget.item(0, val).text()  # what you type in dialog
-                self.tableWidget.setItem(insert_row, val, QTableWidgetItem(new_content))
-                # print(new_content)
-        except Exception as e:
+        signal = False
+        vendor_val = self.insert_dialog.comboBox.currentIndex()  # Insert_Contact combo box item
+        insert_row = self.splitter[vendor_val] - 1
+        firstpostion = insert_row - self.vendorcontact_counts[vendor_val]
+        self.tableWidget.insertRow(insert_row)
+        self.vendorcontact_counts[vendor_val] += 1
+        for i in range(vendor_val, len(self.splitter)):  # every splitter need add 1
+            self.splitter[i] += 1
+        # print(firstpostion, 0, self.vendorcontact_counts[vendor_val] + 1, 1)
+        self.tableWidget.setSpan(firstpostion, 0, self.vendorcontact_counts[vendor_val], 1)
+        for val in range(1, self.insert_dialog.tableWidget.columnCount()):
+            new_content = self.insert_dialog.tableWidget.item(0, val).text()  # what you type in dialog
+            if new_content == '':
+                signal = True
+            self.tableWidget.setItem(insert_row, val, QTableWidgetItem(new_content))
+            # print(new_content)
+        if signal:
             self.msg.warning(self.msg, '提示', '你有空白未填写', self.msg.Ok)
-            print(e)
 
     def add_vendor(self):
         frame = QDialog()
@@ -247,7 +255,7 @@ class Ui_MainWindow(object):
                 self.tableWidget.setItem(last_row, i, item)
             self.tableWidget.insertRow(last_row)
 
-            _add = self.tableWidget.rowCount()-2
+            _add = self.tableWidget.rowCount() - 2
             new_content = self.add_vendor_dialog.lineEdit.text()  # what you type in dialog
             self.tableWidget.setItem(_add, 0, QTableWidgetItem(new_content))
             self.vendor_list.append(self.add_vendor_dialog.lineEdit.text())
@@ -264,29 +272,50 @@ class Ui_MainWindow(object):
         else:
             fianl_warning = self.msg.warning(self.msg, '提示', "确定删除此行？", self.msg.Yes | self.msg.No)
             if fianl_warning == self.msg.Yes:
+                splitter_item = 0
                 selected_row = self.tableWidget.currentRow()
+                for x in range(len(self.splitter)):
+                    if selected_row < self.splitter[x]:
+                        splitter_item = x
+                        break
                 self.tableWidget.removeRow(selected_row)
+                for i in range(splitter_item, len(self.splitter)):  # every splitter need reduce 1
+                    self.splitter[i] -= 1
+                self.vendorcontact_counts[splitter_item] -= 1
             elif fianl_warning == self.msg.No:
                 self.msg.close()
 
+    def edit_function(self):
+        frame = QDialog()
+        self.function_dialog = Function.Ui_Dialog()
+        self.function_dialog.setupUi(frame)
+        self.function_dialog.buttonBox.accepted.connect(self.edit_function_ok)
+        frame.exec()
+
+    def edit_function_ok(self):
+        pass
+
     def get_vendor_info(self):  # 返回pd数据
         first_end = []
+        self.vendor_list = self.reload_vendor_list()
+        print(self.vendor_list)
         for i in range(len(self.splitter)):
             first = self.splitter[i] - self.vendorcontact_counts[i] - 1
             end = self.splitter[i] - 1
             first_end.append([first, end])
-        print(first_end)  # '上海大宁文化传播有限公司'     first_end[0]= [0, 88]
-
+        # print(first_end)  # '上海大宁文化传播有限公司'     first_end[0]= [0, 88]
         head_list = {}
-        for col in range(0, self.tableWidget.columnCount()):
+        for col in range(self.tableWidget.columnCount()):
             head_name = self.tableWidget.horizontalHeaderItem(col).text()
             _list = []
             for x in range(len(self.vendor_list)):
                 for row in range(first_end[x][0], first_end[x][1]):
-                    item = self.tableWidget.item(row, col).text()
                     if col == 0:
                         item = self.vendor_list[x]
-                    _list.append(item)
+                        _list.append(item)
+                    else:
+                        item = self.tableWidget.item(row, col).text()
+                        _list.append(item)
                 head_list.setdefault(head_name, _list)
         pd_data = pd.DataFrame(head_list)
         for i in ['日期', '业务日期', '付款日期']:
@@ -295,3 +324,11 @@ class Ui_MainWindow(object):
             pd_data[i] = pd.to_numeric(pd_data[i], errors='coerce')
         # pd_data["单价"] = pd_data["单价"].astype("int", errors='coerce')
         return pd_data
+
+    def reload_vendor_list(self):
+        self.vendor_list = []
+        for row in range(self.tableWidget.rowCount()):
+            item = self.tableWidget.item(row, 0).text()
+            if not item in ('', ' '):
+                self.vendor_list.append(item)
+        return self.vendor_list

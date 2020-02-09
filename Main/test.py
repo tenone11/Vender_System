@@ -8,6 +8,23 @@
 # # 也可以传入路径参数，如 bar.render("mycharts.html")
 # bar.render()
 
+#
+# a = ['上海大宁文化传播有限公司', [113300.0, 72500.0, 154600.0, 12827105.0, 112950.0, 184000.0, 1074490.0]]
+# print (a[0])
 
-a = ['上海大宁文化传播有限公司', [113300.0, 72500.0, 154600.0, 12827105.0, 112950.0, 184000.0, 1074490.0]]
-print (a[0])
+import re
+#
+# youraddress = 'C:\Users\Administrator\PycharmProjects\Vender_System\Main'
+# url_string = "file:///%s/Source/bar.html" % youraddress
+# url_string = re.sub(r'\\', '/', url_string)
+# print(url_string)
+a= [1,2]
+b= [2,3]
+
+val = 'a*b=c;x+y=z;'
+if re.search(';', val):
+    list = [i for i in val.split(';') if i != '']
+    # for i in list:
+
+    print(list)
+# eval(a)
