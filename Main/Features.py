@@ -1,5 +1,5 @@
 from pyecharts import charts
-import re, os, Main
+import re, os, json
 
 
 def create_bar(x_list, y_list):
@@ -16,8 +16,6 @@ def legal_url(html_name):
     url_string = re.sub(r'\\', '/', url_string)
     return url_string
 
-# def set_function_content('a*b=c;x+y=z'):
-#     Main.function_content = []
 
 
 
@@ -41,4 +39,28 @@ class Features:
         return vendor_name, request_list, result
         # [公司名], [项目名s], [qians]
 
-
+    def run_function(self, val):  # 函数输入值
+        _list = []
+        result = []
+        if re.search(';', val):
+            _list = [i for i in val.split(';') if i != '']  # 'a*b=c;x+y=z' > ['平均人天=总人天/个数', 'x+y=z']
+        else:
+            _list.append(val)
+        _dict = {}
+        _dict.setdefault('Function_Content', _list)
+        new = json.dumps(_dict, sort_keys=True, indent=4, separators=(',', ': '))
+        print(new)
+        try:
+            with open('./Main/Source/data.json', 'w', encoding='utf-8') as f:
+                f.write(new)
+        except Exception as e:
+            print(e)
+        # print(val)
+        # head_list = [column for column in pd_dict]   # ['公司名称', ...,'单笔支付']
+        for func in _list:   # ['凭证字号*类型=执行部门', 'x+y=z']
+            # print(func)    # '平均人天=总人天/个数;付款金额=不含税金额*税率'
+            self.pd_dict.eval(func, inplace=True)
+            result_name = func.split('=')[0]    # '平均人天'
+            result.append(result_name)
+        print(result)
+        return result

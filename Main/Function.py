@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 
 from PyQt5 import QtCore, QtWidgets
-import Main
+import Main, json, re
 
 
 class Ui_Dialog(object):
-    def __init__(self):
-        self.content = Main.function_content
-
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
         Dialog.resize(400, 100)
@@ -26,3 +23,14 @@ class Ui_Dialog(object):
     def retranslateUi(self, Dialog):
         _translate = QtCore.QCoreApplication.translate
         Dialog.setWindowTitle(_translate("Dialog", "添加函数"))
+        self.lineEdit.setText(_translate("Dialog", self.read_data()))
+
+    def read_data(self):
+        open_json = open('./Main/Source/data.json', 'r+', encoding='utf-8')
+        json_data = open_json.read()
+        json_data = json.loads(json_data)
+        data = ''
+        for i in json_data['Function_Content']:
+            data += i+';'
+        return data
+

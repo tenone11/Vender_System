@@ -13,18 +13,28 @@
 # print (a[0])
 
 import re
+
 #
 # youraddress = 'C:\Users\Administrator\PycharmProjects\Vender_System\Main'
 # url_string = "file:///%s/Source/bar.html" % youraddress
 # url_string = re.sub(r'\\', '/', url_string)
 # print(url_string)
-a= [1,2]
-b= [2,3]
 
-val = 'a*b=c;x+y=z;'
-if re.search(';', val):
-    list = [i for i in val.split(';') if i != '']
-    # for i in list:
 
-    print(list)
-# eval(a)
+# val = '我*b=c;x+y=z;'
+# if re.search(';', val):
+#     list = [i for i in val.split(';') if i != '']
+#     print(list)
+#     for i in list:
+#         re.match('\(+-*/\)', i)
+#
+aaa = '平均人天=总人天/个数'
+#
+# bbb = ['日期', '业务日期', '凭证字号', '游戏项目', '类型', '备注', '申请人', '执行部门']
+#
+print(aaa.split('=')[0])
+# #['', '', '', '', '-', '()+*=', '/']
+# # eval(a)
+# import Main
+# print(Main.function_content)
+

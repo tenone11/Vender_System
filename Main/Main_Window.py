@@ -2,13 +2,13 @@
 # -*- coding: utf-8 -*-
 
 from datetime import date
-import Main
-import openpyxl
+import Main, openpyxl
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtGui import QBrush, QColor
 from PyQt5.QtWidgets import QFileDialog, QTableWidgetItem, QDialog, QMessageBox
 from Main import Insert_Contact, Analyze, Add_Vendor, Function
 import pandas as pd
+from Main import Features
 
 
 class Ui_MainWindow(object):
@@ -16,10 +16,11 @@ class Ui_MainWindow(object):
         self.max_col = 0
         self.head_item = []
         self.vendor_list = []
-        self.per_val = []
+        self.first_end = []
         self.vendorcontact_counts = []
         self.splitter = []
         self.msg = QMessageBox()
+        self.features = Features
 
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("Dialog")
@@ -135,27 +136,6 @@ class Ui_MainWindow(object):
                     else:
                         self.tableWidget.setItem(i - 2, x - 1, QTableWidgetItem(str(ws.cell(i, x).value)))
 
-            # below is for calculate per day price
-            # for col in range(self.tableWidget.columnCount()):
-            #     if self.tableWidget.horizontalHeaderItem(col).text() == '总人天':
-            #         self.per_val.append(col)
-            #     if self.tableWidget.horizontalHeaderItem(col).text() == '个数':
-            #         self.per_val.append(col)
-            #     if self.tableWidget.horizontalHeaderItem(col).text() == '平均人天':
-            #         self.per_val.append(col)
-            # try:  # could not convert space to float
-            #     for row in range(self.tableWidget.rowCount()):
-            #         print('a')
-            #         a = self.tableWidget.item(row, self.per_val[0]).text()
-            #         b = self.tableWidget.item(row, self.per_val[1]).text()
-            #         if a != ' ' and b != ' ':
-            #             result = float(a) / float(b)
-            #             result = round(result, 1)  # 2.53333 to 2.5
-            #             result = str(result)
-            #             self.tableWidget.setItem(row, self.per_val[2], QTableWidgetItem(result))
-            # except Exception as e:
-            #     print(e)
-
             for merged_cell in ws.merged_cells:
                 r1, r2, c1, c2 = merged_cell.min_row, merged_cell.max_row, merged_cell.min_col, merged_cell.max_col
                 # print(r1, r2, c1, c2)
@@ -165,7 +145,7 @@ class Ui_MainWindow(object):
                 self.splitter.append(r2)  # every vendor last row
             for row in self.splitter:  # fill background for null space
                 for i in range(0, self.max_col):
-                    item = QTableWidgetItem()
+                    item = QTableWidgetItem('')
                     item.setBackground(QBrush(QColor(128, 128, 128)))
                     self.tableWidget.setItem(row - 1, i, item)
             self.tableWidget.resizeColumnsToContents()  # cell width follow the content length
@@ -203,7 +183,7 @@ class Ui_MainWindow(object):
         pass
 
     def open_analyze(self):
-        # self.vendor_list = self.reload_vendor_list()
+        self.vendor_list = self.reload_vendor_list()
         vendor_dict = self.get_vendor_info()
         a = Analyze.BrowserWindow(vendor_dict, self.vendor_list)
         a.exec()
@@ -293,29 +273,51 @@ class Ui_MainWindow(object):
         frame.exec()
 
     def edit_function_ok(self):
-        pass
+        if self.function_dialog.lineEdit.text() == '':
+            self.msg.warning(self.msg, '提示', '没有函数', self.msg.Ok)
+        else:
+            val = self.function_dialog.lineEdit.text()
+            vendor_dict = self.get_vendor_info()
+            result_name = self.features.Features(vendor_dict).run_function(val)  # ['平均人天']
+            # print(vendor_dict)
+            for col in range(self.tableWidget.columnCount()):
+                for i in result_name:
+                    if self.tableWidget.horizontalHeaderItem(col).text() == i:
+                        for row in range(self.tableWidget.rowCount()):
+                            item = vendor_dict.at[row, i]
+                            if pd.isnull(item):
+                                item = ''
+                            else:
+                                item = round(item, 2)
+                                item = str(item)
+                            self.tableWidget.setItem(row, col, QTableWidgetItem(item))
+            for col in range(self.tableWidget.columnCount()):
+                for i in self.splitter:
+                    item = QTableWidgetItem('')
+                    item.setBackground(QBrush(QColor(128, 128, 128)))
+                    self.tableWidget.setItem(i-1, col, item)
 
     def get_vendor_info(self):  # 返回pd数据
-        first_end = []
         self.vendor_list = self.reload_vendor_list()
-        print(self.vendor_list)
+        # print(self.vendor_list)
         for i in range(len(self.splitter)):
             first = self.splitter[i] - self.vendorcontact_counts[i] - 1
             end = self.splitter[i] - 1
-            first_end.append([first, end])
+            self.first_end.append([first, end])
         # print(first_end)  # '上海大宁文化传播有限公司'     first_end[0]= [0, 88]
         head_list = {}
         for col in range(self.tableWidget.columnCount()):
             head_name = self.tableWidget.horizontalHeaderItem(col).text()
             _list = []
             for x in range(len(self.vendor_list)):
-                for row in range(first_end[x][0], first_end[x][1]):
+                for row in range(self.first_end[x][0], self.first_end[x][1]):
                     if col == 0:
                         item = self.vendor_list[x]
                         _list.append(item)
                     else:
                         item = self.tableWidget.item(row, col).text()
                         _list.append(item)
+                _list.append('-')     #  add line,  same as tablewidget
                 head_list.setdefault(head_name, _list)
         pd_data = pd.DataFrame(head_list)
         for i in ['日期', '业务日期', '付款日期']:
@@ -323,12 +325,18 @@ class Ui_MainWindow(object):
         for i in ['不含税金额', '税率', '付款金额', '单价', '单笔支付', '总人天', '平均人天', '个数']:
             pd_data[i] = pd.to_numeric(pd_data[i], errors='coerce')
         # pd_data["单价"] = pd_data["单价"].astype("int", errors='coerce')
+        # print(pd_data)
         return pd_data
 
     def reload_vendor_list(self):
         self.vendor_list = []
         for row in range(self.tableWidget.rowCount()):
-            item = self.tableWidget.item(row, 0).text()
-            if not item in ('', ' '):
-                self.vendor_list.append(item)
+            try:
+                item = self.tableWidget.item(row, 0).text()
+            except Exception as e:
+                print(e)
+            finally:
+                if item != '' and item != ' ':
+                    # print(item)
+                    self.vendor_list.append(item)
         return self.vendor_list

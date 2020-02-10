@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 """
 柱状图：
     Y轴 公司 付款金额
@@ -15,6 +16,7 @@
 
 饼状图：
 """
+
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from Main import Features
