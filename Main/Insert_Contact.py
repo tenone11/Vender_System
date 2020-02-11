@@ -2,6 +2,7 @@
 
 from PyQt5 import QtCore, QtWidgets
 import Main
+from Admin.Sources import user_json
 
 
 class Ui_Dialog(object):
@@ -24,11 +25,19 @@ class Ui_Dialog(object):
         self.tableWidget.setColumnCount(self.col_val)
         self.tableWidget.setRowCount(1)
         self.tableWidget.setHorizontalHeaderLabels(self.head_item)
+        string = ''
         for i in range(1, self.col_val):    # Bug for QT NoneType
-            self.tableWidget.setItem(0, i, QtWidgets.QTableWidgetItem(''))
+            self.tableWidget.setItem(0, i, QtWidgets.QTableWidgetItem(string))
         self.comboBox = QtWidgets.QComboBox()
         self.comboBox.addItems(self.comboBoxList)
         self.tableWidget.setCellWidget(0, 0, self.comboBox)
+        self.comboBox_gametype = QtWidgets.QComboBox()
+        self.comboBox_gametype.addItems(user_json.gametype())
+        for i in range(self.col_val):
+            if self.tableWidget.horizontalHeaderItem(i).text() == '类型':
+                self.tableWidget.setCellWidget(0, i, self.comboBox_gametype)
+            if self.tableWidget.horizontalHeaderItem(i).text() == '核算部门':
+                self.tableWidget.setItem(0, i, QtWidgets.QTableWidgetItem('供应商管理部'))
         self.tableWidget.resizeColumnsToContents()
         self.retranslateUi(Dialog)
         self.buttonBox.accepted.connect(Dialog.accept)

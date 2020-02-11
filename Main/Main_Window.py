@@ -128,7 +128,7 @@ class Ui_MainWindow(object):
             for i in range(2, ws.max_row + 1):
                 for x in range(1, self.max_col + 1):
                     if ws.cell(i, x).value is None:
-                        self.tableWidget.setItem(i - 2, x - 1, QTableWidgetItem(' '))
+                        self.tableWidget.setItem(i - 2, x - 1, QTableWidgetItem(''))
                     elif isinstance(ws.cell(i, x).value, date):
                         ymd = date.isoformat(ws.cell(i, x).value)
                         self.tableWidget.setItem(i - 2, x - 1, QTableWidgetItem(ymd))
@@ -223,7 +223,10 @@ class Ui_MainWindow(object):
         # print(firstpostion, 0, self.vendorcontact_counts[vendor_val] + 1, 1)
         self.tableWidget.setSpan(firstpostion, 0, self.vendorcontact_counts[vendor_val], 1)
         for val in range(1, self.insert_dialog.tableWidget.columnCount()):
-            new_content = self.insert_dialog.tableWidget.item(0, val).text()  # what you type in dialog
+            if val == 5:                                                        # 5 is "类型"
+                new_content = self.insert_dialog.tableWidget.cellWidget(0, val).currentText()
+            else:
+                new_content = self.insert_dialog.tableWidget.item(0, val).text()  # what you type in dialog
             if new_content == '':
                 signal = True
             self.tableWidget.setItem(insert_row, val, QTableWidgetItem(new_content))
