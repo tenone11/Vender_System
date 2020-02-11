@@ -14,9 +14,16 @@
 
 import re
 
+b = ['上海大宁文化传播有限公司',
+     '江苏省苏州可的文化有限公司',
+     '山东省济南全家信息科技有限公司',
+     '广东省深圳腾讯科技有限公司',
+     '天津名流游戏有限公司']
+
+
 #
 # youraddress = 'C:\Users\Administrator\PycharmProjects\Vender_System\Main'
-# url_string = "file:///%s/Source/bar.html" % youraddress
+# url_string = "file:///%s/Sources/bar.html" % youraddress
 # url_string = re.sub(r'\\', '/', url_string)
 # print(url_string)
 
@@ -28,13 +35,12 @@ import re
 #     for i in list:
 #         re.match('\(+-*/\)', i)
 #
-aaa = '平均人天=总人天/个数'
+# aaa = '平均人天=总人天/个数'
 #
 # bbb = ['日期', '业务日期', '凭证字号', '游戏项目', '类型', '备注', '申请人', '执行部门']
 #
-print(aaa.split('=')[0])
+# print(aaa.split('=')[0])
 # #['', '', '', '', '-', '()+*=', '/']
 # # eval(a)
 # import Main
 # print(Main.function_content)
-

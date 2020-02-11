@@ -6,9 +6,8 @@ import Main, openpyxl
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtGui import QBrush, QColor
 from PyQt5.QtWidgets import QFileDialog, QTableWidgetItem, QDialog, QMessageBox
-from Main import Insert_Contact, Analyze, Add_Vendor, Function
+from Main import Insert_Contact, Analyze, Add_Vendor, Function, Features, Area_Combo
 import pandas as pd
-from Main import Features
 
 
 class Ui_MainWindow(object):
@@ -83,12 +82,12 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuFile.menuAction())
         self.menubar.addAction(self.menuEdit.menuAction())
         self.actionOpen.triggered.connect(self.openfile)
-        self.action_add_contact.triggered.connect(self.add_contact)  # connect
+        self.action_add_contact.triggered.connect(self.check_area)  # connect
         self.action_del_contact.triggered.connect(self.del_contact)
         self.action_add_vendor.triggered.connect(self.add_vendor)
         self.action_function.triggered.connect(self.edit_function)
         self.actionSave.triggered.connect(self.save_file)
-        self.pushButton.clicked.connect(self.add_contact)
+        self.pushButton.clicked.connect(self.check_area)
         self.pushButton_2.clicked.connect(self.del_contact)
         self.pushButton_3.clicked.connect(self.open_analyze)
         self.retranslateUi(MainWindow)
@@ -164,16 +163,16 @@ class Ui_MainWindow(object):
                 ws = wb.create_sheet(index=0, title="VendorSystem")
                 for head_val in range(self.tableWidget.columnCount()):
                     head = self.tableWidget.horizontalHeaderItem(head_val).text()
-                    ws.cell(1, head_val + 1, head)
+                    ws.cell(1, head_val+1, head)
                 for row in range(self.tableWidget.rowCount()):
                     for column in range(self.tableWidget.columnCount()):
                         item = self.tableWidget.item(row, column)
                         if item is not None:
                             ws.cell(row + 2, column + 1, item.text())
                         else:
-                            ws.cell(row + 2, column, ' ')
+                            ws.cell(row + 2, column + 1, ' ')
                 for i in range(len(self.splitter)):  # merge cell column 1
-                    first = self.splitter[i] - self.vendorcontact_counts[i]
+                    first = self.splitter[i] - self.vendorcontact_counts[i] + 1
                     ws.merge_cells('A%d:A%d' % (first, self.splitter[i]))
                 wb.save(path)
         except Exception as e:
@@ -188,13 +187,29 @@ class Ui_MainWindow(object):
         a = Analyze.BrowserWindow(vendor_dict, self.vendor_list)
         a.exec()
 
+    def check_area(self):
+        self.confirm_area = Area_Combo.Ui_Dialog()
+        self.confirm_area.pushButton.clicked.connect(self.add_contact)
+        self.confirm_area.exec()
+
     def add_contact(self):
         frame = QDialog()
+        self.area = self.confirm_area.comboBox.currentText()
+
         self.vendor_list = self.reload_vendor_list()
-        self.insert_dialog = Insert_Contact.Ui_Dialog(self.head_item, self.max_col, self.vendor_list)
-        self.insert_dialog.setupUi(frame)
-        self.insert_dialog.buttonBox.accepted.connect(self.add_contact_ok)
-        frame.exec()
+        filter_vendor = []
+        # print(self.area)
+        for i in self.vendor_list:
+            if self.area in i:
+                filter_vendor.append(i)
+        # print(filter_vendor)
+        if not filter_vendor:
+            self.msg.warning(self.msg, '提示', '没有对应地区的供应商', self.msg.Ok)
+        else:
+            self.insert_dialog = Insert_Contact.Ui_Dialog(self.head_item, self.max_col, filter_vendor)
+            self.insert_dialog.setupUi(frame)
+            self.insert_dialog.buttonBox.accepted.connect(self.add_contact_ok)
+            frame.exec()
 
     def add_contact_ok(self):
         signal = False
@@ -295,7 +310,7 @@ class Ui_MainWindow(object):
                 for i in self.splitter:
                     item = QTableWidgetItem('')
                     item.setBackground(QBrush(QColor(128, 128, 128)))
-                    self.tableWidget.setItem(i-1, col, item)
+                    self.tableWidget.setItem(i - 1, col, item)
 
     def get_vendor_info(self):  # 返回pd数据
         self.vendor_list = self.reload_vendor_list()
@@ -317,7 +332,7 @@ class Ui_MainWindow(object):
                     else:
                         item = self.tableWidget.item(row, col).text()
                         _list.append(item)
-                _list.append('-')     #  add line,  same as tablewidget
+                _list.append('-')  # add line,  same as tablewidget
                 head_list.setdefault(head_name, _list)
         pd_data = pd.DataFrame(head_list)
         for i in ['日期', '业务日期', '付款日期']:

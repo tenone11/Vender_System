@@ -26,7 +26,7 @@ class Ui_Dialog(object):
         self.lineEdit.setText(_translate("Dialog", self.read_data()))
 
     def read_data(self):
-        open_json = open('./Main/Source/data.json', 'r+', encoding='utf-8')
+        open_json = open('./Main/Sources/data.json', 'w', encoding='utf-8')
         json_data = open_json.read()
         json_data = json.loads(json_data)
         data = ''
