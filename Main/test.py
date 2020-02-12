@@ -19,14 +19,16 @@ b = ['上海大宁文化传播有限公司',
      '山东省济南全家信息科技有限公司',
      '广东省深圳腾讯科技有限公司',
      '天津名流游戏有限公司']
-
-
+c = ['', '', 'c']
+print(set(c)=={''})
 #
 # youraddress = 'C:\Users\Administrator\PycharmProjects\Vender_System\Main'
 # url_string = "file:///%s/Sources/bar.html" % youraddress
 # url_string = re.sub(r'\\', '/', url_string)
 # print(url_string)
-
+import pandas as pd
+df = pd.read_excel('e:\\Test\\abc.xlsx')
+print(df)
 
 # val = '我*b=c;x+y=z;'
 # if re.search(';', val):

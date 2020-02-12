@@ -12,14 +12,15 @@ import pandas as pd
 
 class Ui_MainWindow(object):
     def __init__(self):
-        self.max_col = 0
+        # self.max_col = 0
         self.head_item = []
         self.vendor_list = []
         self.first_end = []
-        self.vendorcontact_counts = []
+        self.contact_counts = {}
         self.splitter = []
         self.msg = QMessageBox()
         self.features = Features
+        self.null = ''
 
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("Dialog")
@@ -81,7 +82,7 @@ class Ui_MainWindow(object):
         self.menuEdit.addAction(self.action_function)
         self.menubar.addAction(self.menuFile.menuAction())
         self.menubar.addAction(self.menuEdit.menuAction())
-        self.actionOpen.triggered.connect(self.openfile)
+        self.actionOpen.triggered.connect(self.open_file)
         self.action_add_contact.triggered.connect(self.check_area)  # connect
         self.action_del_contact.triggered.connect(self.del_contact)
         self.action_add_vendor.triggered.connect(self.add_vendor)
@@ -110,44 +111,57 @@ class Ui_MainWindow(object):
         self.action_del_contact.setText(_translate("MainWindow", "删除合同"))
         self.action_function.setText(_translate("MainWindow", "函数"))
 
-    def openfile(self):  # import vendor excel, Please don't
+    def open_file(self):  # import vendor excel, Please don't
         excel_file, _ = QFileDialog.getOpenFileName(None,
                                                     'Choose Files',
                                                     'E:\\Test\\',
                                                     'Excel Files (*.xlsx)')
         if excel_file != '':  # Bug: openfile dialog cancel and quit all window
+            self.df = pd.read_excel(excel_file)
+            # print(self.df)
             wb = openpyxl.load_workbook(filename=excel_file)
             ws = wb.active
-            self.max_col = ws.max_column
-            self.tableWidget.setRowCount(ws.max_row)
-            self.tableWidget.setColumnCount(self.max_col)
-            for row in ws.iter_rows(max_row=1):
-                for cell in row:
-                    self.head_item.append(cell.value)
+            self.tableWidget.setRowCount(self.df.shape[0])
+            self.tableWidget.setColumnCount(self.df.shape[1])
+            self.head_item = [column for column in self.df]  # ['公司名称', ...,'单笔支付']
             self.tableWidget.setHorizontalHeaderLabels(self.head_item)  # get excel head item
-            for i in range(2, ws.max_row + 1):
-                for x in range(1, self.max_col + 1):
-                    if ws.cell(i, x).value is None:
-                        self.tableWidget.setItem(i - 2, x - 1, QTableWidgetItem(''))
-                    elif isinstance(ws.cell(i, x).value, date):
-                        ymd = date.isoformat(ws.cell(i, x).value)
-                        self.tableWidget.setItem(i - 2, x - 1, QTableWidgetItem(ymd))
+            for i in range(self.tableWidget.rowCount()):
+                for x in range(self.tableWidget.columnCount()):
+                    if pd.isna(self.df.iloc[i, x]):
+                        self.tableWidget.setItem(i, x, QTableWidgetItem(self.null))
+                    elif isinstance(self.df.iloc[i, x], date):
+                        ymd = date.isoformat(self.df.iloc[i, x])
+                        self.tableWidget.setItem(i, x, QTableWidgetItem(ymd))
                     else:
-                        self.tableWidget.setItem(i - 2, x - 1, QTableWidgetItem(str(ws.cell(i, x).value)))
+                        self.tableWidget.setItem(i, x, QTableWidgetItem(self.df.iloc[i, x]))
+            for row in range(self.tableWidget.rowCount()):
+                row_list = []
+                for col in range(self.tableWidget.columnCount()):
+                    row_list.append(self.tableWidget.item(row, col).text())
+                if set(row_list) == {self.null}:
+                    self.splitter.append(row + 1)
+                elif pd.isna(self.df.iloc[row, 0]):
+                    self.df.iloc[row, 0] = self.df.iloc[row - 1, 0]
+            # for row in range(self.tableWidget.rowCount()):
 
+            self.contact_counts = self.df["公司名称"].value_counts().to_dict()
+
+            print(self.contact_counts)
             for merged_cell in ws.merged_cells:
                 r1, r2, c1, c2 = merged_cell.min_row, merged_cell.max_row, merged_cell.min_col, merged_cell.max_col
-                # print(r1, r2, c1, c2)
-                self.vendorcontact_counts.append(r2 - r1 + 1)
                 self.tableWidget.setSpan(r1 - 2, c1 - 1, r2 - (r1 - 1), c2)
-                self.vendor_list.append(self.tableWidget.item(r1 - 2, c1 - 1).text())
-                self.splitter.append(r2)  # every vendor last row
             for row in self.splitter:  # fill background for null space
-                for i in range(0, self.max_col):
-                    item = QTableWidgetItem('')
+                for i in range(self.tableWidget.columnCount()):
+                    item = QTableWidgetItem(self.null)
                     item.setBackground(QBrush(QColor(128, 128, 128)))
                     self.tableWidget.setItem(row - 1, i, item)
             self.tableWidget.resizeColumnsToContents()  # cell width follow the content length
+            for row in range(self.tableWidget.rowCount()):
+                item = self.tableWidget.item(row, 0).text()
+                if item != '':
+                    self.vendor_list.append(item)
+            # print(self.vendor_list)
+        # print(self.contact_counts)    {'上海顽哈网络科技有限公司 第76单': 2,...}
 
     def import_file(self):
         pass
@@ -159,21 +173,23 @@ class Ui_MainWindow(object):
                                               'Excel Files (*.xlsx)')
         try:
             if path != '':
+
                 wb = openpyxl.Workbook()
                 ws = wb.create_sheet(index=0, title="VendorSystem")
-                for head_val in range(self.tableWidget.columnCount()):
-                    head = self.tableWidget.horizontalHeaderItem(head_val).text()
-                    ws.cell(1, head_val+1, head)
                 for row in range(self.tableWidget.rowCount()):
                     for column in range(self.tableWidget.columnCount()):
                         item = self.tableWidget.item(row, column)
                         if item is not None:
-                            ws.cell(row + 2, column + 1, item.text())
+                            ws.cell(row + 1, column + 1, item.text())
                         else:
-                            ws.cell(row + 2, column + 1, ' ')
+                            ws.cell(row + 1, column + 1, self.null)
                 for i in range(len(self.splitter)):  # merge cell column 1
-                    first = self.splitter[i] - self.vendorcontact_counts[i] + 1
+                    first = self.splitter[i] - self.contact_counts[i] + 1
                     ws.merge_cells('A%d:A%d' % (first, self.splitter[i]))
+                ws.insert_rows(1, 1)  # insert 1 row for head
+                for head_val in range(self.tableWidget.columnCount()):
+                    head = self.tableWidget.horizontalHeaderItem(head_val).text()
+                    ws.cell(1, head_val + 1, head)
                 wb.save(path)
         except Exception as e:
             print(e)
@@ -182,9 +198,9 @@ class Ui_MainWindow(object):
         pass
 
     def open_analyze(self):
-        self.vendor_list = self.reload_vendor_list()
-        vendor_dict = self.get_vendor_info()
-        a = Analyze.BrowserWindow(vendor_dict, self.vendor_list)
+        self.reload_vendor_info()
+        print('a')
+        a = Analyze.BrowserWindow(self.df, self.vendor_list)
         a.exec()
 
     def check_area(self):
@@ -195,10 +211,8 @@ class Ui_MainWindow(object):
     def add_contact(self):
         frame = QDialog()
         self.area = self.confirm_area.comboBox.currentText()
-
         self.vendor_list = self.reload_vendor_list()
         filter_vendor = []
-        # print(self.area)
         for i in self.vendor_list:
             if self.area in i:
                 filter_vendor.append(i)
@@ -206,33 +220,42 @@ class Ui_MainWindow(object):
         if not filter_vendor:
             self.msg.warning(self.msg, '提示', '没有对应地区的供应商', self.msg.Ok)
         else:
-            self.insert_dialog = Insert_Contact.Ui_Dialog(self.head_item, self.max_col, filter_vendor)
+            self.insert_dialog = Insert_Contact.Ui_Dialog(self.head_item, self.tableWidget.columnCount(), filter_vendor)
             self.insert_dialog.setupUi(frame)
             self.insert_dialog.buttonBox.accepted.connect(self.add_contact_ok)
             frame.exec()
 
     def add_contact_ok(self):
         signal = False
-        vendor_val = self.insert_dialog.comboBox.currentIndex()  # Insert_Contact combo box item
+        vendor_val = 0
+        selected_vendor = self.insert_dialog.comboBox.currentText()
+        for i in range(len(self.vendor_list)):
+            if self.vendor_list[i] == selected_vendor:
+                vendor_val = i
+        # Insert_Contact combo box item
         insert_row = self.splitter[vendor_val] - 1
-        firstpostion = insert_row - self.vendorcontact_counts[vendor_val]
+        firstpostion = insert_row - self.contact_counts[selected_vendor]
+        # print(firstpostion)
         self.tableWidget.insertRow(insert_row)
-        self.vendorcontact_counts[vendor_val] += 1
         for i in range(vendor_val, len(self.splitter)):  # every splitter need add 1
             self.splitter[i] += 1
-        # print(firstpostion, 0, self.vendorcontact_counts[vendor_val] + 1, 1)
-        self.tableWidget.setSpan(firstpostion, 0, self.vendorcontact_counts[vendor_val], 1)
+        self.contact_counts[selected_vendor] += 1
+        # print(firstpostion)
         for val in range(1, self.insert_dialog.tableWidget.columnCount()):
-            if val == 5:                                                        # 5 is "类型"
+            if self.insert_dialog.tableWidget.horizontalHeaderItem(val) == "类型":  # 4 is "类型"
+                print(val)
                 new_content = self.insert_dialog.tableWidget.cellWidget(0, val).currentText()
+                print(new_content)
             else:
                 new_content = self.insert_dialog.tableWidget.item(0, val).text()  # what you type in dialog
             if new_content == '':
                 signal = True
             self.tableWidget.setItem(insert_row, val, QTableWidgetItem(new_content))
-            # print(new_content)
+        self.tableWidget.setItem(insert_row, 0, QTableWidgetItem(self.null))    #Bug no text()
+        self.tableWidget.setSpan(firstpostion, 0, self.contact_counts[selected_vendor], 1)
         if signal:
             self.msg.warning(self.msg, '提示', '你有空白未填写', self.msg.Ok)
+        self.reload_vendor_info()
 
     def add_vendor(self):
         frame = QDialog()
@@ -247,7 +270,7 @@ class Ui_MainWindow(object):
             self.msg.warning(self.msg, '提示', '不允许空', self.msg.Ok)
         else:
             self.tableWidget.insertRow(last_row)
-            for i in range(self.max_col):
+            for i in range(self.tableWidget.columnCount()):
                 item = QTableWidgetItem()
                 item.setBackground(QBrush(QColor(128, 128, 128)))
                 self.tableWidget.setItem(last_row, i, item)
@@ -258,7 +281,8 @@ class Ui_MainWindow(object):
             self.tableWidget.setItem(_add, 0, QTableWidgetItem(new_content))
             self.vendor_list.append(self.add_vendor_dialog.lineEdit.text())
             self.splitter.append(self.tableWidget.rowCount())
-            self.vendorcontact_counts.append(1)
+            self.contact_counts.setdefault(new_content, 1)
+        self.reload_vendor_info()
 
     def del_contact(self):
         only_val = []
@@ -272,6 +296,7 @@ class Ui_MainWindow(object):
             if fianl_warning == self.msg.Yes:
                 splitter_item = 0
                 selected_row = self.tableWidget.currentRow()
+                selected_row_vendor = self.df.iloc[selected_row, 0]
                 for x in range(len(self.splitter)):
                     if selected_row < self.splitter[x]:
                         splitter_item = x
@@ -279,9 +304,10 @@ class Ui_MainWindow(object):
                 self.tableWidget.removeRow(selected_row)
                 for i in range(splitter_item, len(self.splitter)):  # every splitter need reduce 1
                     self.splitter[i] -= 1
-                self.vendorcontact_counts[splitter_item] -= 1
+                self.contact_counts[selected_row_vendor] -= 1
             elif fianl_warning == self.msg.No:
                 self.msg.close()
+        self.reload_vendor_info()
 
     def edit_function(self):
         frame = QDialog()
@@ -295,14 +321,14 @@ class Ui_MainWindow(object):
             self.msg.warning(self.msg, '提示', '没有函数', self.msg.Ok)
         else:
             val = self.function_dialog.lineEdit.text()
-            vendor_dict = self.get_vendor_info()
-            result_name = self.features.Features(vendor_dict).run_function(val)  # ['平均人天']
+            self.reload_vendor_info()
+            result_name = self.features.Features(self.df).run_function(val)  # ['平均人天']
             # print(vendor_dict)
             for col in range(self.tableWidget.columnCount()):
                 for i in result_name:
                     if self.tableWidget.horizontalHeaderItem(col).text() == i:
                         for row in range(self.tableWidget.rowCount()):
-                            item = vendor_dict.at[row, i]
+                            item = self.df.at[row, i]
                             if pd.isnull(item):
                                 item = ''
                             else:
@@ -315,22 +341,17 @@ class Ui_MainWindow(object):
                     item.setBackground(QBrush(QColor(128, 128, 128)))
                     self.tableWidget.setItem(i - 1, col, item)
 
-    def get_vendor_info(self):  # 返回pd数据
+    def reload_vendor_info(self):  # 返回pd数据
         self.vendor_list = self.reload_vendor_list()
-        # print(self.vendor_list)
-        for i in range(len(self.splitter)):
-            first = self.splitter[i] - self.vendorcontact_counts[i] - 1
-            end = self.splitter[i] - 1
-            self.first_end.append([first, end])
-        # print(first_end)  # '上海大宁文化传播有限公司'     first_end[0]= [0, 88]
+        print(self.vendor_list)
         head_list = {}
         for col in range(self.tableWidget.columnCount()):
             head_name = self.tableWidget.horizontalHeaderItem(col).text()
             _list = []
-            for x in range(len(self.vendor_list)):
-                for row in range(self.first_end[x][0], self.first_end[x][1]):
+            for vendor_name in self.vendor_list:
+                for row in range(self.contact_counts[vendor_name]):
                     if col == 0:
-                        item = self.vendor_list[x]
+                        item = vendor_name
                         _list.append(item)
                     else:
                         item = self.tableWidget.item(row, col).text()
@@ -344,17 +365,14 @@ class Ui_MainWindow(object):
             pd_data[i] = pd.to_numeric(pd_data[i], errors='coerce')
         # pd_data["单价"] = pd_data["单价"].astype("int", errors='coerce')
         # print(pd_data)
-        return pd_data
+        self.df = pd_data
+        # print(self.df)
+        # return pd_data
 
     def reload_vendor_list(self):
         self.vendor_list = []
         for row in range(self.tableWidget.rowCount()):
-            try:
-                item = self.tableWidget.item(row, 0).text()
-            except Exception as e:
-                print(e)
-            finally:
-                if item != '' and item != ' ':
-                    # print(item)
-                    self.vendor_list.append(item)
+            item = self.tableWidget.item(row, 0).text()
+            if item != '':
+                self.vendor_list.append(item)
         return self.vendor_list
