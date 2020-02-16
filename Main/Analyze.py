@@ -20,6 +20,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from Main import Features
+import os
 
 
 class BrowserWindow(QtWidgets.QDialog):
@@ -30,8 +31,11 @@ class BrowserWindow(QtWidgets.QDialog):
         self.onevendor_sum = []
         self.onevendor_daysum = []
         self.features = Features.Features(self.pd_dict)
-        self.onevendor_daysum = self.features.get_base_sum(self.vendor_list, '总人天')
-        self.onevendor_sum = self.features.get_base_sum(self.vendor_list, '付款金额')
+        self.onevendor_daysum = self.features.filter_one_col_sum('公司名称', '总人天')
+        self.onevendor_sum = self.features.filter_one_col_sum('公司名称', '付款金额')
+        self.all_sum = self.features.get_one_col_sum('付款金额')
+        self.all_manday = self.features.get_one_col_sum('总人天')
+        self.url_string = ''
         self.initUI()
         self.msg = QtWidgets.QMessageBox()
 
@@ -68,17 +72,17 @@ class BrowserWindow(QtWidgets.QDialog):
             font.setPointSize(10)
             self.groupBox[i].setFont(font)
             self.label_groupBox[i] = QtWidgets.QLabel(self.groupBox[i])
-            self.label_groupBox[i].setText('总支出：%.2f元' % self.onevendor_sum[i])
+            self.label_groupBox[i].setText('总支出：%.2f元' % self.onevendor_sum[i][1])
             self.label_groupBox[i].setGeometry(QtCore.QRect(10, 20, 400, 40))
             font.setBold(False)
             font.setPointSize(8)
             self.label_groupBox[i].setFont(font)
             self.label_groupBox[i + 1] = QtWidgets.QLabel(self.groupBox[i])
-            self.label_groupBox[i + 1].setText('总人天：%.1f' % self.onevendor_daysum[i])
+            self.label_groupBox[i + 1].setText('总人天：%.1f' % self.onevendor_daysum[i][1])
             self.label_groupBox[i + 1].setGeometry(QtCore.QRect(10, 40, 400, 40))
             self.label_groupBox[i + 1].setFont(font)
-        self.label_4.setText("总支出：%.2f元" % sum(self.onevendor_sum))
-        self.label_5.setText("总人天：%.1f" % sum(self.onevendor_daysum))
+        self.label_4.setText("总支出：%.2f元" % self.all_sum)
+        self.label_5.setText("总人天：%.1f" % self.all_manday)
         self.scrollAreaWidgetContents.resize(600, 90 * len(self.vendor_list))
         self.scrollArea.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
@@ -98,52 +102,75 @@ class BrowserWindow(QtWidgets.QDialog):
         self.horizontalLayout_3.addWidget(self.label_2)
         self.comboBox_01 = QtWidgets.QComboBox(self.horizontalLayoutWidget_3)
         self.horizontalLayout_3.addWidget(self.comboBox_01)
-        self.comboBox_01_02 = QtWidgets.QComboBox(self.horizontalLayoutWidget_3)
-        self.horizontalLayout_3.addWidget(self.comboBox_01_02)
-        self.pushButton_insert = QtWidgets.QPushButton(self.horizontalLayoutWidget_3)
-        self.horizontalLayout_3.addWidget(self.pushButton_insert)
-        self.pushButton_insert.setText("插入")
+        # self.pushButton_insert = QtWidgets.QPushButton(self.horizontalLayoutWidget_3)
+        # self.horizontalLayout_3.addWidget(self.pushButton_insert)
+        # self.pushButton_insert.setText("插入")
         self.label = QtWidgets.QLabel(self.horizontalLayoutWidget_3)
         self.label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         self.horizontalLayout_3.addWidget(self.label)
         self.comboBox_02 = QtWidgets.QComboBox(self.horizontalLayoutWidget_3)
         self.horizontalLayout_3.addWidget(self.comboBox_02)
+        self.checkBox = QtWidgets.QCheckBox(self.horizontalLayoutWidget_3)
+        self.horizontalLayout_3.addWidget(self.checkBox)
         self.pushButton = QtWidgets.QPushButton(self.horizontalLayoutWidget_3)
         self.horizontalLayout_3.addWidget(self.pushButton)
+        self.saveButton = QtWidgets.QPushButton(self.horizontalLayoutWidget_3)
+        self.horizontalLayout_3.addWidget(self.saveButton)
         self.tabWidget.addTab(self.tab_2, "")
         self.tabWidget.setCurrentIndex(0)
         self.label_3.setText("柱状图：")
-        self.label_2.setText("Y轴：")
-        self.label.setText("X轴：")
+        self.label_2.setText("根据")
+        self.label.setText("搜索：")
+        self.checkBox.setText("饼图")
         self.pushButton.setText("OK")
+        self.saveButton.setText("Save as")
         self.browser = QWebEngineView(self.tab_2)
-        self.browser.setGeometry(QtCore.QRect(0, 50, 800, 600))
+        self.browser.setGeometry(QtCore.QRect(0, 50, 1500, 1080))
 
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), "图表数据分析")
-
-        self.comboBox_01.addItems(self.vendor_list)
-        item1 = ['付款金额', '不含税金额', '总人天']
-        item2 = ['游戏项目', '类型', '项目部门']
-        self.comboBox_01_02.addItems(item1)
+        item1 = ['公司名称', '游戏项目', '类型', '项目部门']
+        self.comboBox_01.addItems(item1)
+        item2 = ['付款金额', '不含税金额', '总人天']
         self.comboBox_02.addItems(item2)
-
-        self.pushButton_insert.clicked.connect(self.get_barlist)
+        # self.pushButton_insert.clicked.connect(self.get_barlist)
         self.pushButton.clicked.connect(self.show_bar)
+        self.saveButton.clicked.connect(self.save_file)
 
     # comboBox_01 公司名称   comboBox_01_02 钱    comboBox_02 项目
-    def get_barlist(self):
-        self.y_list = []
-        self.vendor_name = self.comboBox_01.currentText()
-        self.project_name = self.comboBox_02.currentText()
-        self.result = self.comboBox_01_02.currentText()
-        self.get_res = self.features.get_project_sum(self.vendor_name, self.project_name, self.result)
-        self.y_list.append([self.get_res[0], self.get_res[2]])
-        self.msg.information(self.msg, '提示', '添加成功', self.msg.Ok)
+    # def get_barlist(self):
+    #     self.vendor_name = self.comboBox_01.currentText()
+    #     self.project_name = self.comboBox_02.currentText()
+    #     # self.result = self.comboBox_01_02.currentText()
+    #     self.get_res = self.features.get_project_sum(self.vendor_name, self.project_name, self.result)
+    #     self.y_list.append([self.get_res[0], self.get_res[2]])
+    #     self.msg.information(self.msg, '提示', '添加成功', self.msg.Ok)
+    #     # print(self.y_list)
 
     def show_bar(self):
-        self.x_list = self.get_res[1]
-        print(self.x_list)
-        print(self.y_list)
-        Features.create_bar(self.x_list, self.y_list)
-        url_string = Features.legal_url('bar')
-        self.browser.load(QtCore.QUrl(url_string))
+        # print(x)
+        # print(self.x_list)
+        # print(self.y_list)
+        self.x_list = []
+        self.y_list = []
+        val01 = self.comboBox_01.currentText()
+        val02 = self.comboBox_02.currentText()
+        for i in self.features.filter_one_col_sum(val01, val02):
+            self.y_list.append(i[1])
+            self.x_list.append(i[0])
+        if self.checkBox.isChecked():
+            Features.create_pie(val01, self.features.filter_one_col_sum(val01, val02))
+            self.url_string = Features.legal_url('pie')
+        else:
+            Features.create_bar(self.x_list, val01, self.y_list)
+            self.url_string = Features.legal_url('bar')
+        self.browser.load(QtCore.QUrl(self.url_string))
+
+    def save_file(self):
+        path, _ = QtWidgets.QFileDialog.getSaveFileName(None,
+                                                        'SaveFile',
+                                                        'E:\\Test\\',
+                                                        'HTML (*.html)')
+        if path != '':
+            source_file = self.url_string[8:]
+            Features.save_file(source_file, path)
+            self.msg.information(self.msg, '提示', '保存完成', self.msg.Ok)

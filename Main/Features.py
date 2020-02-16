@@ -1,14 +1,18 @@
 from pyecharts import charts
-import re, os, json
+import re, os, json, shutil
 
 
-def create_bar(x_list, y_list):
+def create_bar(x_list, col_name, y_list):
     bar = charts.Bar()
     bar.add_xaxis(x_list)
-    for i in y_list:
-        bar.add_yaxis(i[0], i[1])
+    bar.add_yaxis(col_name, y_list)
     bar.render("Main/Sources/bar.html")
 
+def create_pie( col_name, y_list):
+    pie = charts.Pie()
+
+    pie.add(col_name, y_list)
+    pie.render("Main/Sources/pie.html")
 
 def legal_url(html_name):
     root_path = os.path.abspath(os.path.dirname(__file__))
@@ -16,21 +20,34 @@ def legal_url(html_name):
     url_string = re.sub(r'\\', '/', url_string)
     return url_string
 
+def save_file(source, target):
+    shutil.copyfile(source, target)
 
 class Features:
     def __init__(self, pd_dict):
         self.pd_dict = pd_dict
 
-    def get_base_sum(self, vendor_list, which_col):
-        result = []
-        for i in vendor_list:
-            temp = self.pd_dict[self.pd_dict['公司名称'] == i]
-            result.append(temp[which_col].sum())
+    def get_col_list(self, col_name):
+        result = self.pd_dict.drop_duplicates(subset=[col_name], keep='first')
+        result = result[col_name].dropna().tolist()
+        if '' in result:
+            result.remove('')
         return result
 
-    def get_project_sum(self, vendor_name, request, val):
+    def get_one_col_sum(self, col_name):
+        return self.pd_dict[col_name].sum()
+
+    def filter_one_col_sum(self, col_name, which_col):
         result = []
-        temp = self.pd_dict[self.pd_dict['公司名称'] == vendor_name]
+        for i in self.get_col_list(col_name):
+            temp = self.pd_dict[self.pd_dict[col_name] == i]
+            result.append([i, temp[which_col].sum()])
+        # print(result)
+        return result
+
+    def get_project_sum(self, filter01, filter02, val):
+        result = []
+        temp = self.pd_dict[self.pd_dict[filter01] == vendor_name]
         request_list = list(set(temp[request]))
         for i in request_list:
             result.append(temp[(temp[request] == i)][val].sum())

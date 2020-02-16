@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from PyQt5 import QtCore, QtWidgets
-import Main, json, re
+import Main, json
 
 
 class Ui_Dialog(object):
@@ -26,11 +26,10 @@ class Ui_Dialog(object):
         self.lineEdit.setText(_translate("Dialog", self.read_data()))
 
     def read_data(self):
-        open_json = open('./Main/Sources/data.json', 'w', encoding='utf-8')
+        open_json = open('./Main/Sources/data.json', 'r+', encoding='utf-8')
         json_data = open_json.read()
         json_data = json.loads(json_data)
         data = ''
         for i in json_data['Function_Content']:
             data += i+';'
         return data
-

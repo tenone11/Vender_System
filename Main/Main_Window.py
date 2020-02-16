@@ -118,22 +118,25 @@ class Ui_MainWindow(object):
                                                     'Excel Files (*.xlsx)')
         if excel_file != '':  # Bug: openfile dialog cancel and quit all window
             self.df = pd.read_excel(excel_file)
-            # print(self.df)
-            wb = openpyxl.load_workbook(filename=excel_file)
-            ws = wb.active
+            # wb = openpyxl.load_workbook(filename=excel_file)
+            # ws = wb.active
             self.tableWidget.setRowCount(self.df.shape[0])
             self.tableWidget.setColumnCount(self.df.shape[1])
             self.head_item = [column for column in self.df]  # ['公司名称', ...,'单笔支付']
             self.tableWidget.setHorizontalHeaderLabels(self.head_item)  # get excel head item
-            for i in range(self.tableWidget.rowCount()):
-                for x in range(self.tableWidget.columnCount()):
+            for x in range(self.tableWidget.columnCount()):
+                for i in range(self.tableWidget.rowCount()):
                     if pd.isna(self.df.iloc[i, x]):
                         self.tableWidget.setItem(i, x, QTableWidgetItem(self.null))
                     elif isinstance(self.df.iloc[i, x], date):
                         ymd = date.isoformat(self.df.iloc[i, x])
                         self.tableWidget.setItem(i, x, QTableWidgetItem(ymd))
                     else:
-                        self.tableWidget.setItem(i, x, QTableWidgetItem(self.df.iloc[i, x]))
+                        self.tableWidget.setItem(i, x, QTableWidgetItem(str(self.df.iloc[i, x])))
+            r = self.tableWidget.rowCount() if self.tableWidget.rowCount() else 0
+            self.tableWidget.insertRow(r)
+            for col in range(self.tableWidget.columnCount()):
+                self.tableWidget.setItem(r, col, QTableWidgetItem(self.null))
             for row in range(self.tableWidget.rowCount()):
                 row_list = []
                 for col in range(self.tableWidget.columnCount()):
@@ -142,25 +145,21 @@ class Ui_MainWindow(object):
                     self.splitter.append(row + 1)
                 elif pd.isna(self.df.iloc[row, 0]):
                     self.df.iloc[row, 0] = self.df.iloc[row - 1, 0]
-            # for row in range(self.tableWidget.rowCount()):
-
+                    self.tableWidget.setItem(row, 0, QTableWidgetItem(self.df.iloc[row - 1, 0]))
             self.contact_counts = self.df["公司名称"].value_counts().to_dict()
-
-            print(self.contact_counts)
-            for merged_cell in ws.merged_cells:
-                r1, r2, c1, c2 = merged_cell.min_row, merged_cell.max_row, merged_cell.min_col, merged_cell.max_col
-                self.tableWidget.setSpan(r1 - 2, c1 - 1, r2 - (r1 - 1), c2)
+            # print(self.df.groupby('公司名称'))
+            # for merged_cell in ws.merged_cells:
+            #     r1, r2, c1, c2 = merged_cell.min_row, merged_cell.max_row, merged_cell.min_col, merged_cell.max_col
+            #     self.tableWidget.setSpan(r1 - 2, c1 - 1, r2 - (r1 - 1), c2)
             for row in self.splitter:  # fill background for null space
                 for i in range(self.tableWidget.columnCount()):
                     item = QTableWidgetItem(self.null)
                     item.setBackground(QBrush(QColor(128, 128, 128)))
                     self.tableWidget.setItem(row - 1, i, item)
             self.tableWidget.resizeColumnsToContents()  # cell width follow the content length
-            for row in range(self.tableWidget.rowCount()):
-                item = self.tableWidget.item(row, 0).text()
-                if item != '':
-                    self.vendor_list.append(item)
-            # print(self.vendor_list)
+            filter_vendor = self.df.drop_duplicates(subset=['公司名称'], keep='first')
+            self.vendor_list = filter_vendor['公司名称'].dropna().tolist()
+            print(self.vendor_list)
         # print(self.contact_counts)    {'上海顽哈网络科技有限公司 第76单': 2,...}
 
     def import_file(self):
@@ -173,7 +172,6 @@ class Ui_MainWindow(object):
                                               'Excel Files (*.xlsx)')
         try:
             if path != '':
-
                 wb = openpyxl.Workbook()
                 ws = wb.create_sheet(index=0, title="VendorSystem")
                 for row in range(self.tableWidget.rowCount()):
@@ -183,6 +181,11 @@ class Ui_MainWindow(object):
                             ws.cell(row + 1, column + 1, item.text())
                         else:
                             ws.cell(row + 1, column + 1, self.null)
+                print('a')
+                print(self.splitter)
+                print(self.contact_counts)
+                print(self.df)
+                print(self.df.duplicated('', keep='first'))
                 for i in range(len(self.splitter)):  # merge cell column 1
                     first = self.splitter[i] - self.contact_counts[i] + 1
                     ws.merge_cells('A%d:A%d' % (first, self.splitter[i]))
@@ -190,6 +193,7 @@ class Ui_MainWindow(object):
                 for head_val in range(self.tableWidget.columnCount()):
                     head = self.tableWidget.horizontalHeaderItem(head_val).text()
                     ws.cell(1, head_val + 1, head)
+
                 wb.save(path)
         except Exception as e:
             print(e)
@@ -199,7 +203,6 @@ class Ui_MainWindow(object):
 
     def open_analyze(self):
         self.reload_vendor_info()
-        print('a')
         a = Analyze.BrowserWindow(self.df, self.vendor_list)
         a.exec()
 
@@ -242,10 +245,8 @@ class Ui_MainWindow(object):
         self.contact_counts[selected_vendor] += 1
         # print(firstpostion)
         for val in range(1, self.insert_dialog.tableWidget.columnCount()):
-            if self.insert_dialog.tableWidget.horizontalHeaderItem(val) == "类型":  # 4 is "类型"
-                print(val)
+            if self.insert_dialog.tableWidget.horizontalHeaderItem(val).text() == "类型":  # 4 is "类型"
                 new_content = self.insert_dialog.tableWidget.cellWidget(0, val).currentText()
-                print(new_content)
             else:
                 new_content = self.insert_dialog.tableWidget.item(0, val).text()  # what you type in dialog
             if new_content == '':
@@ -275,7 +276,6 @@ class Ui_MainWindow(object):
                 item.setBackground(QBrush(QColor(128, 128, 128)))
                 self.tableWidget.setItem(last_row, i, item)
             self.tableWidget.insertRow(last_row)
-
             _add = self.tableWidget.rowCount() - 2
             new_content = self.add_vendor_dialog.lineEdit.text()  # what you type in dialog
             self.tableWidget.setItem(_add, 0, QTableWidgetItem(new_content))
@@ -323,7 +323,6 @@ class Ui_MainWindow(object):
             val = self.function_dialog.lineEdit.text()
             self.reload_vendor_info()
             result_name = self.features.Features(self.df).run_function(val)  # ['平均人天']
-            # print(vendor_dict)
             for col in range(self.tableWidget.columnCount()):
                 for i in result_name:
                     if self.tableWidget.horizontalHeaderItem(col).text() == i:
@@ -343,21 +342,15 @@ class Ui_MainWindow(object):
 
     def reload_vendor_info(self):  # 返回pd数据
         self.vendor_list = self.reload_vendor_list()
-        print(self.vendor_list)
         head_list = {}
         for col in range(self.tableWidget.columnCount()):
             head_name = self.tableWidget.horizontalHeaderItem(col).text()
             _list = []
-            for vendor_name in self.vendor_list:
-                for row in range(self.contact_counts[vendor_name]):
-                    if col == 0:
-                        item = vendor_name
-                        _list.append(item)
-                    else:
-                        item = self.tableWidget.item(row, col).text()
-                        _list.append(item)
-                _list.append('-')  # add line,  same as tablewidget
-                head_list.setdefault(head_name, _list)
+            for row in range(self.tableWidget.rowCount()):
+                item = self.tableWidget.item(row, col).text()
+                _list.append(item)
+            # _list.append('-')  # add line,  same as tablewidget
+            head_list.setdefault(head_name, _list)
         pd_data = pd.DataFrame(head_list)
         for i in ['日期', '业务日期', '付款日期']:
             pd_data[i] = pd.to_datetime(pd_data[i], format='%Y-%m-%d', errors='coerce')
@@ -366,13 +359,12 @@ class Ui_MainWindow(object):
         # pd_data["单价"] = pd_data["单价"].astype("int", errors='coerce')
         # print(pd_data)
         self.df = pd_data
-        # print(self.df)
+        print(self.df)
         # return pd_data
 
     def reload_vendor_list(self):
-        self.vendor_list = []
-        for row in range(self.tableWidget.rowCount()):
-            item = self.tableWidget.item(row, 0).text()
-            if item != '':
-                self.vendor_list.append(item)
+        filter_vendor = self.df.drop_duplicates(subset=['公司名称'], keep='first')
+        self.vendor_list = filter_vendor['公司名称'].dropna().tolist()
+        # print(self.vendor_list)
         return self.vendor_list
+
